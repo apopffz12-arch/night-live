@@ -1,127 +1,192 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" translate="no">
 <head>
 <meta charset="UTF-8">
+<meta name="google" content="notranslate">
 <title>night gifts</title>
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@1,500;1,600&family=IBM+Plex+Mono:wght@400&family=Caveat:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@1,500&family=Caveat:wght@500&display=swap" rel="stylesheet">
 <style>
 html,body{margin:0;width:100%;height:100%;background:transparent;overflow:hidden}
-:root{--gt:16.6vh;--gb:70.6vh;--cool:170,190,255;--warm:255,186,120}
+body.bg{background:#000 center/100% 100% no-repeat}
+canvas{position:absolute;inset:0;width:100%;height:100%}
 .L{position:absolute;pointer-events:none}
-canvas{position:absolute;inset:0}
-.name{font-family:'Lora',Georgia,serif;font-style:italic;color:#f5f3ff;text-align:center;
-  text-shadow:0 0 10px rgba(var(--cool),.6),0 0 28px rgba(var(--cool),.35),0 2px 5px rgba(0,0,0,.95);opacity:0;transition:opacity 1.2s ease}
-.small{font-family:'IBM Plex Mono',monospace;font-size:1.25vh;letter-spacing:.32em;text-transform:lowercase;color:rgba(230,234,255,.75);
-  text-shadow:0 1px 3px rgba(0,0,0,.9);opacity:0;transition:opacity 1.2s ease;text-align:center;white-space:nowrap}
-.on{opacity:1!important}
-.hand{font-family:'Caveat',cursive;font-size:4.2vh;color:rgba(255,255,255,.88);
-  text-shadow:0 0 6px rgba(255,255,255,.5),0 0 18px rgba(var(--cool),.35);white-space:nowrap;
-  clip-path:inset(0 100% 0 0);transition:clip-path 1.8s ease, opacity 1.5s ease}
-.hand.write{clip-path:inset(0 0 0 0)}
-.av{border-radius:50%;overflow:hidden;opacity:0;transform:scale(.6);transition:opacity 1.2s ease,transform 1.6s cubic-bezier(.2,.9,.2,1);
-  box-shadow:0 0 0 2px rgba(255,255,255,.75),0 0 18px rgba(var(--cool),.8),0 0 44px rgba(var(--cool),.45);background:#1a2238}
+.av{border-radius:50%;overflow:hidden;opacity:0;transform:scale(.4);filter:blur(6px);
+  transition:opacity 1.4s ease,transform 1.8s cubic-bezier(.2,.9,.2,1),filter 1.4s ease;background:#141a2c}
+.av.on{opacity:1;transform:scale(1);filter:blur(0)}
 .av img{width:100%;height:100%;object-fit:cover;display:block}
-.av .ini{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Lora',serif;font-style:italic;color:#fff;font-size:150%}
-.av.on{opacity:1;transform:scale(1)}
-.av.warm{box-shadow:0 0 0 2px rgba(255,236,214,.85),0 0 18px rgba(var(--warm),.8),0 0 44px rgba(var(--warm),.45)}
-#menu{left:0;right:0;top:calc(var(--gt) + 1.4vh);}
-#menu span{color:#ffe2c2}
+.av .ini{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Lora',serif;font-style:italic;color:#fff}
+.nm{left:0;right:0;text-align:center;font-family:'Lora',Georgia,serif;font-style:italic;color:#f7f4ff;opacity:0;letter-spacing:.02em;
+  filter:blur(8px);transform:translateY(.4em);transition:opacity 1.6s ease,filter 1.6s ease,transform 1.6s ease;white-space:nowrap}
+.nm.hand{font-family:'Caveat',cursive;letter-spacing:.01em}
+.nm.on{opacity:1;filter:blur(0);transform:none}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<div class="L small" id="menu"></div>
-<div class="L" id="fx" style="inset:0"></div>
+<div id="fx" class="L" style="inset:0"></div>
 <script>
 /* ============ settings ============
-   ?gt=16.6 ?gb=70.6     game window (% of height)
-   ?ws=ws://localhost:21213   TikFinity WebSocket (default) ; ?ws=0 to disable
-   ?demo=rose|stars|butterfly|galaxy|all     preview effects
-   ?menu=0               hide the rotating gift guide
+   ?gt=16.6 ?gb=70.6          game window (% of height)
+   ?ws=ws://localhost:21213    TikFinity WebSocket (default) ; ?ws=0 to disable
+   ?demo=rose|stars|butterfly|galaxy|all
 =================================== */
 const P=new URLSearchParams(location.search),num=(k,d)=>{const v=parseFloat(P.get(k));return isNaN(v)?d:v};
 const GT=num('gt',16.6)/100, GB=num('gb',70.6)/100;
-document.documentElement.style.setProperty('--gt',GT*100+'vh');document.documentElement.style.setProperty('--gb',GB*100+'vh');
+if(P.get('bgimg')){document.body.classList.add('bg');document.body.style.backgroundImage=`url(${P.get('bgimg')})`}
 const cv=document.getElementById('c'),cx=cv.getContext('2d'),fx=document.getElementById('fx');
-let W,H;function size(){W=cv.width=innerWidth*devicePixelRatio;H=cv.height=innerHeight*devicePixelRatio}size();addEventListener('resize',size);
-const rnd=(a,b)=>a+Math.random()*(b-a);
+let W,H,DPR;function size(){DPR=devicePixelRatio||1;W=cv.width=innerWidth*DPR;H=cv.height=innerHeight*DPR}size();addEventListener('resize',size);
+const rnd=(a,b)=>a+Math.random()*(b-a), cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
+const eio=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2, eout=t=>1-Math.pow(1-t,3);
+const VH=()=>H/100;               // 1vh in canvas px
+const CX=()=>W/2, CY=()=>H*(GB-.215);   // stage centre: lower-middle of the game window (clear of phrases, comments, host bar)
 
-/* ---------- gift guide: one line, rotating, under the title ---------- */
-const MENU=[
- ['🌹 rose','your name, written on the glass'],
- ['✨ stars snap','light up the night sky'],
- ['🦋 butterfly','a firefly carries your name'],
- ['🌌 galaxy','the whole sky is yours'],
-];
-const menu=document.getElementById('menu');let mi=0;
-function menuTick(){ if(P.get('menu')==='0')return; menu.classList.remove('on');
-  setTimeout(()=>{const m=MENU[mi++%MENU.length];menu.innerHTML=`<span>${m[0]}</span> &nbsp;·&nbsp; ${m[1]}`;menu.classList.add('on')},1300);}
-menuTick();setInterval(menuTick,7000);
+/* ---------- glow sprites (pre-rendered, drawn additively) ---------- */
+const SPR={};
+function sprite(rgb){if(SPR[rgb])return SPR[rgb];const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');
+  const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,`rgba(255,255,255,1)`);r.addColorStop(.18,`rgba(${rgb},.9)`);r.addColorStop(.5,`rgba(${rgb},.25)`);r.addColorStop(1,`rgba(${rgb},0)`);
+  g.fillStyle=r;g.fillRect(0,0,64,64);return SPR[rgb]=c}
+function dot(x,y,s,rgb,a){if(a<=0.003)return;cx.globalAlpha=Math.min(1,a);const sp=sprite(rgb);cx.drawImage(sp,x-s,y-s,2*s,2*s)}
+function haze(x,y,r,rgb,a){if(a<=0.003)return;const g=cx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(${rgb},${a})`);g.addColorStop(1,`rgba(${rgb},0)`);cx.globalAlpha=1;cx.fillStyle=g;cx.fillRect(x-r,y-r,2*r,2*r)}
 
-/* ---------- particle engine on canvas ---------- */
-let parts=[];
-function glow(x,y,r,c,a){const g=cx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(${c},${a})`);g.addColorStop(1,`rgba(${c},0)`);cx.fillStyle=g;cx.fillRect(x-r,y-r,2*r,2*r)}
-function loop(t){cx.clearRect(0,0,W,H);const now=performance.now();
-  parts=parts.filter(p=>now<p.end);for(const p of parts)p.draw(now,(now-p.start)/(p.end-p.start));requestAnimationFrame(loop)}
+/* ---------- scene loop ---------- */
+let scenes=[];
+function loop(){cx.globalCompositeOperation='source-over';cx.clearRect(0,0,W,H);const now=performance.now();
+  scenes=scenes.filter(s=>now<s.t0+s.dur);
+  for(const s of scenes){const t=(now-s.t0)/1000;s.draw(t)}
+  cx.globalAlpha=1;requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
-function add(dur,draw,delay=0){const s=performance.now()+delay;parts.push({start:s,end:s+dur,draw:(n,q)=>{if(q>=0)draw(q)}})}
-function text(cls,html,css,life){const d=document.createElement('div');d.className='L '+cls;d.innerHTML=html;Object.assign(d.style,css);fx.appendChild(d);
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{d.classList.add('on');if(cls.includes('hand'))d.classList.add('write')}));
-  setTimeout(()=>{d.classList.remove('on');d.style.opacity=0},life-1500);setTimeout(()=>d.remove(),life);return d}
-function avatar(pic,name,vh,css,life,warm){const d=document.createElement('div');d.className='L av'+(warm?' warm':'');
-  Object.assign(d.style,{width:vh+'vh',height:vh+'vh',fontSize:(vh*.45)+'vh'},css);
+function scene(dur,draw){scenes.push({t0:performance.now(),dur:dur*1000,draw})}
+
+/* ---------- avatar + name ---------- */
+const esc=s=>String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])).slice(0,24);
+function avatar(pic,name,vh,at,life,ring){const d=document.createElement('div');d.className='L av';
+  Object.assign(d.style,{width:vh+'vh',height:vh+'vh',left:`calc(50% - ${vh/2}vh)`,top:`calc(${(GB-.215)*100-vh/2}vh)`,fontSize:(vh*.45)+'vh',
+    boxShadow:`0 0 0 .18vh rgba(255,255,255,.8),0 0 2.2vh rgba(${ring},.9),0 0 5vh rgba(${ring},.5)`});
   const ini=`<div class="ini">${esc(name).replace('@','').charAt(0).toUpperCase()||'✦'}</div>`;
   d.innerHTML=pic?`<img src="${pic}" referrerpolicy="no-referrer" onerror="this.parentNode.innerHTML='${ini.replace(/"/g,'&quot;')}'">`:ini;
-  fx.appendChild(d);requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.add('on')));
-  setTimeout(()=>d.classList.remove('on'),life-1300);setTimeout(()=>d.remove(),life);return d}
-const esc=s=>String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])).slice(0,22);
+  setTimeout(()=>{fx.appendChild(d);requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.add('on')))},at*1000);
+  setTimeout(()=>d.classList.remove('on'),(life-1.4)*1000);setTimeout(()=>d.remove(),life*1000)}
+function nameTag(name,at,life,cls,vh,glow,dy){const d=document.createElement('div');d.className='L nm '+(cls||'');d.textContent=name;
+  Object.assign(d.style,{top:`calc(${(GB-.215)*100+dy}vh)`,fontSize:vh+'vh',
+    textShadow:`0 0 1vh rgba(${glow},.8),0 0 3vh rgba(${glow},.45),0 .2vh .5vh rgba(0,0,0,.95)`});
+  setTimeout(()=>{fx.appendChild(d);requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.add('on')))},at*1000);
+  setTimeout(()=>d.classList.remove('on'),(life-1.6)*1000);setTimeout(()=>d.remove(),life*1000)}
 
-/* ---------- 1. rose: fog on the glass + handwritten name ---------- */
+/* generic swarm: particles fly in on curved paths, hold & shimmer, then release */
+function swarm(pts,o){ // pts: [{x,y,c,s}] in units of vh relative to stage centre
+  return pts.map(p=>{const a=rnd(0,Math.PI*2),R=rnd(40,75);
+    return {...p,sx:Math.cos(a)*R*.6,sy:Math.sin(a)*R,d:rnd(0,o.spread||1),sw:rnd(-1,1)*(o.swirl||14),ph:rnd(0,6.28),vx:rnd(-1,1),vy:rnd(-1,1)}})}
+function swarmPos(p,t,o){ // returns [x,y,alpha] in vh units
+  const g=cl((t-p.d)/o.gather), e=eio(g);
+  let x=p.sx+(p.x-p.sx)*e, y=p.sy+(p.y-p.sy)*e;
+  const bend=Math.sin(Math.PI*g)*p.sw; x+=bend*Math.cos(p.ph); y+=bend*Math.sin(p.ph);
+  let a=cl(g*3)*.95;
+  if(t>o.release){const r=(t-o.release)/o.fade;x+=p.vx*r*o.drift;y+=p.vy*r*o.drift+(o.fall||0)*r*r;a*=cl(1-r)}
+  else{x+=Math.sin(t*2+p.ph)*.12;y+=Math.cos(t*1.7+p.ph)*.12}
+  return [x,y,a]}
+
+/* =================== 1. ROSE — embers gather and bloom into a rose =================== */
 function rose(name,pic){
-  const x=W*.72,y=H*(GT+.07);
-  add(6000,q=>{const a=Math.sin(Math.PI*Math.min(q*1.3,1))*.22;glow(x,y,W*.22,'235,240,255',a);
-    const d=Math.max(0,q-.35)/.65; glow(x+W*.05,y+H*.02+d*H*.12,W*.012,'255,255,255',.5*(1-d)); }); // fog + one drop sliding
-  add(900,q=>glow(x,y,W*.35,'255,200,170',.12*Math.sin(Math.PI*q)));                                  // warm breath
-  avatar(pic,name,6,{left:'calc(50% - 3vh)',top:`calc(${GB*100-25}vh)`},6000,true);
-  text('hand',`for ${esc(name)}`,{left:'25%',top:`calc(${GB*100-18}vh)`,width:'50%',textAlign:'center'},6000);
+  const D=7, pts=[], N=650;
+  for(let i=0;i<N;i++){const u=i/N, th=u*7*Math.PI, r=(.6+11.5*Math.pow(u,.85))*(.82+.18*Math.cos(5*th+u*3));
+    const ang=th+rnd(-.08,.08), rr=r+rnd(-.35,.35);
+    const c=u<.25?'190,20,60':u<.7?'235,60,95':'255,150,160';
+    pts.push({x:Math.cos(ang)*rr*1.05,y:Math.sin(ang)*rr*.78,c,s:rnd(.35,.8)*(1.2-u*.5)})}
+  for(let i=0;i<60;i++){const t=rnd(0,1);pts.push({x:Math.sin(t*2.4)*1.1+rnd(-.25,.25),y:9.5+t*9,c:'95,175,115',s:rnd(.25,.42),g:1})}       // slim curved stem
+  for(const [side,ly] of [[1,12.5],[-1,15.2]])for(let i=0;i<55;i++){const u=rnd(0,1),w=Math.sin(Math.PI*u)*1.15*rnd(-1,1),ang=side*-.6;  // two almond leaves
+    const lx=u*5.2, x=lx*Math.cos(ang)-w*Math.sin(ang), y=lx*Math.sin(ang)+w*Math.cos(ang);pts.push({x:side*(x)+Math.sin((ly-9.5)/9*2.4)*1.1,y:ly+y*side*-1*-1,c:'115,205,140',s:rnd(.22,.4),g:1})}
+  const S=swarm(pts,{spread:1.2,swirl:16}), O={gather:2.4,release:5.4,fade:1.6,drift:6,fall:14};
+  const petals=[...Array(16)].map(()=>({x:rnd(-10,10),y:rnd(-6,4),vx:rnd(-3,3),r:rnd(0,6.28),d:rnd(5.3,6)}));
+  scene(D,t=>{const v=VH(),X=CX(),Y=CY();cx.globalCompositeOperation='lighter';
+    const bloom=cl((t-2.2)/1.2)*cl((O.release+1-t));
+    haze(X,Y,v*22,'255,70,100',.16*bloom);haze(X,Y,v*7,'255,200,190',.22*bloom);
+    for(const p of S){const [x,y,a]=swarmPos(p,t,O);dot(X+x*v,Y+(y+(p.g?cl(t-2.9)*2:0))*v,p.s*v*(1+.25*bloom),p.c,a*(p.g?cl(1-(t-2.9)/.9):1))}  // stem melts into the name
+    for(const q of petals){if(t<q.d)continue;const k=t-q.d;dot(X+(q.x+q.vx*k+Math.sin(k*3+q.r)*1.2)*v,Y+(q.y+k*k*7)*v,.9*v,'255,90,120',cl(1-k/1.6)*.8)}
+  });
+  avatar(pic,name,5.6,2.6,D-.2,'255,110,140');
+  nameTag(name,3.0,D-.3,'hand',3.6,'255,120,150',8.6);
 }
-/* ---------- 2. stars snap: the sky lights up, star by star ---------- */
+
+/* =================== 2. STARS — a shooting star bursts into a crown of stars =================== */
 function stars(name,pic){
-  const n=46;for(let i=0;i<n;i++){const x=rnd(.04,.96)*W,y=rnd(.02,GT-.03)*H,r=rnd(1.5,3.2)*devicePixelRatio,d=i*45;
-    add(6200-d,q=>{const a=Math.min(q*6,1)*(1-Math.max(0,q-.7)/.3);glow(x,y,r*5,'200,215,255',.25*a);cx.fillStyle=`rgba(255,255,255,${.9*a})`;cx.fillRect(x-r/2,y-r/2,r,r)},d)}
-  avatar(pic,name,6.5,{left:'calc(50% - 3.25vh)',top:`calc(${GB*100-25}vh)`},6500);
-  text('name',`${esc(name)} lit the sky`,{left:0,right:0,top:`calc(${GB*100-17.4}vh)`,fontSize:'2.6vh'},6500);
+  const D=7.5, crown=[];
+  for(let i=0;i<220;i++){const a=rnd(0,Math.PI*2),r=rnd(6.6,8.2)+(i%11==0?rnd(1,3):0);crown.push({a,r,s:rnd(.25,.7)*(i%11==0?2.2:1),ph:rnd(0,6.28),d:rnd(0,.5)})}
+  const dust=[...Array(60)].map(()=>({x:rnd(-30,30),y:rnd(-22,-8),s:rnd(.2,.5),ph:rnd(0,6.28)}));
+  scene(D,t=>{const v=VH(),X=CX(),Y=CY();cx.globalCompositeOperation='lighter';
+    // 1) the falling star (0 → 1.3s)
+    const f=cl(t/1.3), sx=X+(1-eout(f))*W*.55, sy=Y-(1-eout(f))*v*28;
+    if(t<1.45){for(let i=0;i<34;i++){const k=i/34;dot(sx+k*v*16*(1-f*.6),sy-k*v*8*(1-f*.6),(1.4-k)*v*.9,'200,220,255',(1-k)*.9)}dot(sx,sy,v*2.4,'230,240,255',1)}
+    // 2) flash + crown
+    const fl=cl(1-(t-1.3)/.9)*(t>1.3?1:0);haze(X,Y,v*30,'190,210,255',.35*fl);
+    if(t>1.3){const k=t-1.3, end=cl((D-.3-t)/1.4);
+      for(const c of crown){const e=eout(cl((k-c.d*.4)/1.1)), r=c.r*e, a=c.a+k*.12;
+        const tw=.55+.45*Math.sin(t*5+c.ph);dot(X+Math.cos(a)*r*v,Y+Math.sin(a)*r*v*.95,c.s*v*(1+fl),'215,228,255',tw*end*e)}
+      haze(X,Y,v*12,'170,190,255',.14*end);
+      for(const d of dust){const a=cl((k-.4)/1.5)*end*(.4+.6*Math.sin(t*3+d.ph));dot(X+d.x*v,Y+d.y*v,d.s*v,'255,255,255',a)}}
+  });
+  avatar(pic,name,6.6,1.6,D-.2,'180,200,255');
+  nameTag(name,2.2,D-.3,'',3.0,'170,195,255',10);
 }
-/* ---------- 3. butterfly: a firefly drifts through the dark, carrying the name ---------- */
+
+/* =================== 3. BUTTERFLY — light gathers into a butterfly that flies and lands =================== */
 function butterfly(name,pic){
-  const pts=[[-.05,GB+.16],[.35,GB+.09],[.7,GB+.13],[.985,GB-.02],[.985,GT+.05],[.75,GT-.07],[.4,GT-.10],[-.05,GT-.06]];
-  const path=q=>{const s=q*(pts.length-1),i=Math.min(Math.floor(s),pts.length-2),f=s-i,e=f*f*(3-2*f);
-    return [ (pts[i][0]+(pts[i+1][0]-pts[i][0])*e)*W, (pts[i][1]+(pts[i+1][1]-pts[i][1])*e)*H ]};
-  const trail=[];while(trail.length>90)trail.shift();
-  add(7000,q=>{const [x,y]=path(q);trail.push([x,y,performance.now()]);if(trail.length>90)trail.shift();
-    for(const t of trail){const age=(performance.now()-t[2])/1400;if(age<1)glow(t[0],t[1],7*devicePixelRatio,'255,214,160',.16*(1-age))}
-    const flap=.6+.4*Math.sin(performance.now()/90);glow(x,y,26*devicePixelRatio,'255,200,140',.35);glow(x,y,8*devicePixelRatio*flap,'255,245,225',.9)});
-  avatar(pic,name,7,{left:'calc(50% - 3.5vh)',top:`calc(${GB*100-25}vh)`},7500,true);
-  text('name',esc(name),{left:0,right:0,top:`calc(${GB*100-17}vh)`,fontSize:'2.8vh'},7500);
+  const D=9, pts=[];
+  for(let i=0;i<900;i++){const tt=rnd(0,12*Math.PI), e=Math.exp(Math.cos(tt))-2*Math.cos(4*tt)-Math.pow(Math.sin(tt/12),5);
+    const f=i<520?1:Math.sqrt(rnd(.05,1));                       // outline + filled wings
+    const x=Math.sin(tt)*e*f, y=-Math.cos(tt)*e*f;
+    const rad=Math.hypot(x,y), c=rad>2.6?'255,190,110':rad>1.4?'120,200,255':'200,170,255';
+    pts.push({x:x*3.1,y:y*3.1-1.2,c,s:rnd(.28,.6)*(f<1?.8:1)})}
+  for(let i=0;i<40;i++)pts.push({x:rnd(-.25,.25),y:rnd(-3.5,3),c:'255,240,220',s:.45});
+  const S=swarm(pts,{spread:.9,swirl:10}), O={gather:2.2,release:99,fade:1,drift:0};
+  const trail=[];
+  scene(D,t=>{const v=VH(),Y0=CY();cx.globalCompositeOperation='lighter';
+    // flight path (stage units): forms at left, loops across window, lands at centre
+    const fly=cl((t-2.6)/3.6), e=eio(fly);
+    const px=(-20+20*e)+Math.sin(fly*Math.PI*2)*5*(1-e), py=(5-5*e)-Math.sin(fly*Math.PI)*2.5;
+    const X=CX()+px*v, Y=Y0+py*v;
+    const land=cl((t-6.2)/1.4), flap=t<2.6?1:(.25+.75*Math.abs(Math.cos(t*(land>0?3:7))))*(1-land*.4);
+    const dis=cl((t-7.2)/1.4), tilt=Math.sin(t*2)*.12*(1-land);
+    if(fly>0&&fly<1){trail.push([X,Y,t]);}
+    for(const q of trail){const k=(t-q[2])/1.6;if(k<1)dot(q[0]+rnd(-2,2)*v*.2,q[1]+k*v*3,.6*v,'255,210,150',.35*(1-k))}
+    haze(X,Y,v*16,'150,190,255',.12*cl(t-1.5)*(1-dis));
+    for(const p of S){let [x,y,a]=swarmPos(p,t,O);x*=flap;const xr=x*Math.cos(tilt)-y*Math.sin(tilt),yr=x*Math.sin(tilt)+y*Math.cos(tilt);
+      let gx=X+xr*v*(1-dis*.3), gy=Y+yr*v;
+      if(dis>0){const ang=Math.atan2(yr,xr)+dis*2,R=Math.hypot(xr,yr)*(1-dis)+dis*7.5;gx=CX()+Math.cos(ang)*R*v;gy=Y0+Math.sin(ang)*R*v;a*=1-dis*.55}
+      dot(gx,gy,p.s*v,p.c,a*cl((D-.2-t)/1.2))}
+  });
+  avatar(pic,name,7,7.0,D-.2,'255,200,140');
+  nameTag(name,7.5,D-.3,'',3.0,'255,200,150',9.6);
 }
-/* ---------- 4. galaxy: the sky opens ---------- */
+
+/* =================== 4. GALAXY — the window dims, a galaxy is born and collapses into the viewer =================== */
 function galaxy(name,pic){
-  add(10500,q=>{const a=Math.sin(Math.PI*q);cx.fillStyle=`rgba(3,5,14,${.35*a})`;cx.fillRect(0,0,W,GT*H);cx.fillRect(0,GB*H,W,H-GB*H);
-    for(let i=0;i<14;i++){const u=i/13;glow(W*(-.1+1.2*u),H*(GT*.55+.06*Math.sin(u*5)),W*.16,i%3?'150,170,255':'210,150,255',.10*a)}});
-  for(let k=0;k<7;k++){const d=600+k*900,y0=rnd(.0,GT*.6)*H,x0=rnd(.6,1.1)*W;
-    add(1600,q=>{const x=x0-q*W*.7,y=y0+q*H*.08;for(let s=0;s<22;s++){const u=s/22;glow(x+u*70*devicePixelRatio,y-u*9*devicePixelRatio,(4-u*3)*devicePixelRatio,'230,240,255',(1-u)*.9*Math.sin(Math.PI*q))}},d)}
-  const sp=[];for(let i=0;i<120;i++)sp.push([rnd(0,1)*W,rnd(0,GT)*H,rnd(.5,2)*devicePixelRatio]);
-  add(10500,q=>{const a=Math.sin(Math.PI*q);for(const s of sp){cx.fillStyle=`rgba(255,255,255,${a*.8*(.5+.5*Math.sin(performance.now()/300+s[0]))})`;cx.fillRect(s[0],s[1],s[2],s[2])}});
-  avatar(pic,name,10,{left:'calc(50% - 5vh)',top:`calc(${GB*100-28}vh)`},10500);
-  text('name',esc(name),{left:0,right:0,top:`calc(${GB*100-17}vh)`,fontSize:'3.6vh'},10500);
-  text('small','the night is yours',{left:0,right:0,top:`calc(${GB*100-12.4}vh)`},10500);
+  const D=12, arms=[];
+  for(let i=0;i<1500;i++){const arm=i%3, u=Math.pow(rnd(0,1),.75), th=arm*2.094+u*5.2+rnd(-.35,.35)*(1-u*.5);
+    const c=u<.15?'255,235,210':u<.5?(i%4?'170,180,255':'255,170,220'):(i%5?'120,150,255':'200,140,255');
+    arms.push({u,th,c,s:rnd(.2,.6)*(1.3-u*.6),z:rnd(-1,1)})}
+  const met=[...Array(8)].map((_,k)=>({d:1.2+k*1.1,y:rnd(-34,-14),x:rnd(10,40)}));
+  scene(D,t=>{const v=VH(),X=CX(),Y=CY();
+    // the sky dims: whole window, cinematic
+    const dim=cl(t/1.2)*cl((D-t)/1.5);cx.globalCompositeOperation='source-over';cx.globalAlpha=1;cx.fillStyle=`rgba(2,3,10,${.5*dim})`;cx.fillRect(0,0,W,H);
+    cx.globalCompositeOperation='lighter';
+    const born=eout(cl((t-.6)/2.4)), col=eio(cl((t-8.6)/1.6)), rot=t*.35;
+    haze(X,Y,v*34,'90,80,200',.18*born*(1-col));haze(X,Y,v*9*(1+col),'255,230,200',(.35+.5*col)*born*cl((D-.4-t)/1.4));
+    for(const a of arms){const R=a.u*26*born*(1-col*.96), th=a.th+rot*(1.4-a.u);
+      const x=Math.cos(th)*R, y=Math.sin(th)*R*.42+a.z*.6;
+      const tw=.6+.4*Math.sin(t*4+a.th*7);dot(X+x*v,Y+y*v,a.s*v,a.c,tw*born*cl((D-.6-t)/1.2)*(1-col*.5))}
+    for(const m of met){const k=(t-m.d)/1.1;if(k<0||k>1)continue;const mx=X+(m.x-k*55)*v,my=Y+(m.y+k*9)*v;
+      for(let i=0;i<26;i++){const q=i/26;dot(mx+q*v*12,my-q*v*2,(1.2-q)*v*.6,'230,240,255',(1-q)*Math.sin(Math.PI*k))}}
+    if(t>10.1){const k=(t-10.1)/1.2;haze(X,Y,v*(10+k*30),'255,240,220',.5*cl(1-k))}   // final shine
+  });
+  avatar(pic,name,9.5,9.6,D-.2,'255,225,190');
+  nameTag(name,10.0,D-.3,'',4.0,'230,200,255',11.5);
 }
-const FX={rose,stars,butterfly,galaxy};
+const FX={rose,stars,butterfly,galaxy}, LEN={rose:7.4,stars:7.9,butterfly:9.4,galaxy:12.4};
 
 /* ---------- queue so effects never pile up ---------- */
-const Q=[];let busy=false;const LEN={rose:5000,stars:5500,butterfly:6500,galaxy:10000};
+const Q=[];let busy=false;
 function play(kind,name,pic){Q.push([kind,name,pic]);if(!busy)next()}
-function next(){const it=Q.shift();if(!it){busy=false;return}busy=true;FX[it[0]](it[1],it[2]);setTimeout(next,LEN[it[0]])}
+function next(){const it=Q.shift();if(!it){busy=false;return}busy=true;FX[it[0]](it[1],it[2]);setTimeout(next,LEN[it[0]]*1000)}
 
 /* ---------- gift name -> effect ---------- */
 function kindOf(g){g=(g||'').toLowerCase();
@@ -138,8 +203,8 @@ function connect(){ if(WSURL==='0')return; let ws;try{ws=new WebSocket(WSURL)}ca
 connect();
 
 /* ---------- demo ---------- */
-const demo=P.get('demo');
-if(demo==='all'){['rose','stars','butterfly','galaxy'].forEach(k=>play(k,'@sarah_92'))}else if(demo&&FX[demo])play(demo,'@sarah_92');
+const demo=P.get('demo'), dn=P.get('name')||'sarah_92';
+if(demo==='all'){['rose','stars','butterfly','galaxy'].forEach(k=>play(k,dn))}else if(demo&&FX[demo])play(demo,dn);
 </script>
 </body>
 </html>
