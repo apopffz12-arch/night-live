@@ -20,6 +20,9 @@ canvas{position:absolute;inset:0;width:100%;height:100%}
 .nm.hand{font-family:'Caveat',cursive;letter-spacing:.01em}
 .nm.on{opacity:1;filter:blur(0);transform:none}
 .gh.on{opacity:.42!important}
+.ln{left:8%;right:8%;text-align:center;font-family:'Lora',Georgia,serif;font-style:italic;color:#fbf8ff;font-size:3.3vh;line-height:1.35;opacity:0;
+  filter:blur(10px);transform:translateY(.5em);transition:opacity 2s ease,filter 2s ease,transform 2s ease}
+.ln.on{opacity:1;filter:blur(0);transform:none}
 .cap{left:0;right:0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:1.35vh;letter-spacing:.28em;text-transform:lowercase;color:rgba(235,238,255,.8);
   text-shadow:0 .1vh .3vh rgba(0,0,0,.95);opacity:0;transition:opacity 1.6s ease;white-space:nowrap}
 .cap.on{opacity:.62}
@@ -188,10 +191,34 @@ function galaxy(name,pic){
 }
 const FX={rose,stars,butterfly,galaxy}, LEN={rose:6.9,stars:8.9,butterfly:12.4,galaxy:20.4};
 
+/* ---------- the dedication: a cloud rolls over the on-screen phrase and a line is spoken to the giver ---------- */
+const LINES={
+ rose:['you\'re allowed to rest tonight.','still here. still soft.','the night is kinder with you.','some hearts stay warm. yours did.'],
+ stars:['you made it through worse.','look up. it didn\'t win.','you\'re lighter than you think.','we survived every night so far.'],
+ butterfly:['what broke you gave you wings.','let it go. you\'ll fly.','you\'re becoming someone new.','it hurt. and you grew anyway.'],
+ galaxy:['we\'ve been sad. we\'re still here.','you\'re the reason this night shines.','keep going. the stars are on your side.','we got used to the dark. now we glow.']};
+const lastLine={};
+function veil(kind,D){
+  const pool=LINES[kind];let l;do{l=pool[Math.floor(Math.random()*pool.length)]}while(pool.length>1&&l===lastLine[kind]);lastLine[kind]=l;
+  const puffs=[...Array(26)].map(()=>({x:rnd(-.1,1.1),y:rnd(GT+.07,GT+.25),r:rnd(.10,.2),ph:rnd(0,6.28),sp:rnd(-.012,.012)}));
+  const g0=GHOST;GHOST=false;
+  scene(D,t=>{const a=cl((t-.3)/1.6)*cl((D-t)/1.8);cx.globalCompositeOperation='source-over';
+    {const y0=(GT+.035)*H,y1=(GT+.29)*H,g=cx.createLinearGradient(0,y0,0,y1);g.addColorStop(0,'rgba(12,15,27,0)');g.addColorStop(.2,`rgba(12,15,27,${.93*a})`);
+     g.addColorStop(.8,`rgba(12,15,27,${.93*a})`);g.addColorStop(1,'rgba(12,15,27,0)');cx.globalAlpha=1;cx.fillStyle=g;cx.fillRect(0,y0,W,y1-y0)}
+    for(const p of puffs){const x=(p.x+p.sp*t)*W, y=p.y*H+Math.sin(t*.6+p.ph)*H*.004, r=p.r*W*(1+.06*Math.sin(t*.8+p.ph));
+      const g=cx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(14,17,30,${.45*a})`);g.addColorStop(.55,`rgba(16,19,34,${.25*a})`);g.addColorStop(1,'rgba(16,19,34,0)');
+      cx.globalAlpha=1;cx.fillStyle=g;cx.fillRect(x-r,y-r,2*r,2*r)}
+    cx.globalCompositeOperation='lighter';for(const p of puffs.slice(0,8)){haze((p.x+p.sp*t)*W,p.y*H,p.r*W*.6,'150,165,220',.05*a)}});
+  GHOST=g0;
+  const d=document.createElement('div');d.className='L ln';d.textContent=l;d.style.top=`calc(${(GT+.125)*100}vh)`;
+  d.style.textShadow='0 0 1.2vh rgba(190,205,255,.55),0 0 3vh rgba(150,170,255,.3),0 .2vh .5vh rgba(0,0,0,.95)';
+  setTimeout(()=>{fx.appendChild(d);requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.add('on')))},1300);
+  setTimeout(()=>d.classList.remove('on'),(D-2)*1000);setTimeout(()=>d.remove(),D*1000)}
+
 /* ---------- queue so effects never pile up ---------- */
 const Q=[];let busy=false;
 function play(kind,name,pic,ghost){Q.push([kind,name,pic,!!ghost]);if(!busy)next()}
-function next(){const it=Q.shift();if(!it){busy=false;return}busy=true;GHOST=it[3];FX[it[0]](it[1],it[2]);if(GHOST)caption(it[0]);GHOST=false;setTimeout(next,LEN[it[0]]*1000)}
+function next(){const it=Q.shift();if(!it){busy=false;return}busy=true;GHOST=it[3];FX[it[0]](it[1],it[2]);if(GHOST)caption(it[0]);else veil(it[0],LEN[it[0]]-.3);GHOST=false;setTimeout(next,LEN[it[0]]*1000)}
 
 /* ---------- gift name -> effect ---------- */
 const TIER=['rose','stars','butterfly','galaxy'];
@@ -212,8 +239,8 @@ function connect(){ if(WSURL==='0')return; let ws;try{ws=new WebSocket(WSURL)}ca
 connect();
 
 /* ---------- teaser: when no gift for a while, a faint "ghost" of one effect plays deep in the scene ---------- */
-const CAP={rose:'🌹 rose  →  your name blooms here',stars:'✨ stars snap  →  a crown of stars, for you',
-  butterfly:'🦋 butterfly  →  it carries your name',galaxy:'🌌 galaxy  →  the whole night is yours'};
+const CAP={rose:'🌹  →  the night whispers something to you',stars:'✨  →  make a wish. the sky answers',
+  butterfly:'🦋  →  a message only you were meant to read',galaxy:'🌌  →  your name, written across the sky'};
 function caption(k){const d=document.createElement('div');d.className='L cap';d.textContent=CAP[k];
   d.style.top=`calc(${(GB-.215)*100+12.5}vh)`;fx.appendChild(d);requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.add('on')));
   setTimeout(()=>d.classList.remove('on'),(LEN[k]-2)*1000);setTimeout(()=>d.remove(),LEN[k]*1000)}
