@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="google" content="notranslate">
 <title>night gifts</title>
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@1,500&family=Caveat:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@1,500&family=IBM+Plex+Mono&family=Caveat:wght@500&display=swap" rel="stylesheet">
 <style>
 html,body{margin:0;width:100%;height:100%;background:transparent;overflow:hidden}
 body.bg{background:#000 center/100% 100% no-repeat}
@@ -19,6 +19,10 @@ canvas{position:absolute;inset:0;width:100%;height:100%}
   filter:blur(8px);transform:translateY(.4em);transition:opacity 1.6s ease,filter 1.6s ease,transform 1.6s ease;white-space:nowrap}
 .nm.hand{font-family:'Caveat',cursive;letter-spacing:.01em}
 .nm.on{opacity:1;filter:blur(0);transform:none}
+.gh.on{opacity:.42!important}
+.cap{left:0;right:0;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:1.35vh;letter-spacing:.28em;text-transform:lowercase;color:rgba(235,238,255,.8);
+  text-shadow:0 .1vh .3vh rgba(0,0,0,.95);opacity:0;transition:opacity 1.6s ease;white-space:nowrap}
+.cap.on{opacity:.62}
 </style>
 </head>
 <body>
@@ -37,7 +41,8 @@ const cv=document.getElementById('c'),cx=cv.getContext('2d'),fx=document.getElem
 let W,H,DPR;function size(){DPR=devicePixelRatio||1;W=cv.width=innerWidth*DPR;H=cv.height=innerHeight*DPR}size();addEventListener('resize',size);
 const rnd=(a,b)=>a+Math.random()*(b-a), cl=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 const eio=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2, eout=t=>1-Math.pow(1-t,3);
-const VH=()=>H/100;               // 1vh in canvas px
+let GA=1,GS=1,GHOST=false;
+const VH=()=>H/100*GS;               // 1vh in canvas px
 const CX=()=>W/2, CY=()=>H*(GB-.215);   // stage centre: lower-middle of the game window (clear of phrases, comments, host bar)
 
 /* ---------- glow sprites (pre-rendered, drawn additively) ---------- */
@@ -45,28 +50,28 @@ const SPR={};
 function sprite(rgb){if(SPR[rgb])return SPR[rgb];const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');
   const r=g.createRadialGradient(32,32,0,32,32,32);r.addColorStop(0,`rgba(255,255,255,1)`);r.addColorStop(.18,`rgba(${rgb},.9)`);r.addColorStop(.5,`rgba(${rgb},.25)`);r.addColorStop(1,`rgba(${rgb},0)`);
   g.fillStyle=r;g.fillRect(0,0,64,64);return SPR[rgb]=c}
-function dot(x,y,s,rgb,a){if(a<=0.003)return;cx.globalAlpha=Math.min(1,a);const sp=sprite(rgb);cx.drawImage(sp,x-s,y-s,2*s,2*s)}
-function haze(x,y,r,rgb,a){if(a<=0.003)return;const g=cx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(${rgb},${a})`);g.addColorStop(1,`rgba(${rgb},0)`);cx.globalAlpha=1;cx.fillStyle=g;cx.fillRect(x-r,y-r,2*r,2*r)}
+function dot(x,y,s,rgb,a){a*=GA;if(a<=0.003)return;cx.globalAlpha=Math.min(1,a);const sp=sprite(rgb);cx.drawImage(sp,x-s,y-s,2*s,2*s)}
+function haze(x,y,r,rgb,a){a*=GA;if(a<=0.003)return;const g=cx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(${rgb},${a})`);g.addColorStop(1,`rgba(${rgb},0)`);cx.globalAlpha=1;cx.fillStyle=g;cx.fillRect(x-r,y-r,2*r,2*r)}
 
 /* ---------- scene loop ---------- */
 let scenes=[];
 function loop(){cx.globalCompositeOperation='source-over';cx.clearRect(0,0,W,H);const now=performance.now();
   scenes=scenes.filter(s=>now<s.t0+s.dur);
-  for(const s of scenes){const t=(now-s.t0)/1000;s.draw(t)}
+  for(const s of scenes){const t=(now-s.t0)/1000;GA=s.g?.4:1;GS=s.g?.72:1;s.draw(t)}GA=1;GS=1;
   cx.globalAlpha=1;requestAnimationFrame(loop)}
 requestAnimationFrame(loop);
-function scene(dur,draw){scenes.push({t0:performance.now(),dur:dur*1000,draw})}
+function scene(dur,draw){scenes.push({t0:performance.now(),dur:dur*1000,draw,g:GHOST})}
 
 /* ---------- avatar + name ---------- */
 const esc=s=>String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])).slice(0,24);
-function avatar(pic,name,vh,at,life,ring){const d=document.createElement('div');d.className='L av';
+function avatar(pic,name,vh,at,life,ring){const g=GHOST;if(g){vh*=.72;pic=''}const d=document.createElement('div');d.className='L av'+(g?' gh':'');
   Object.assign(d.style,{width:vh+'vh',height:vh+'vh',left:`calc(50% - ${vh/2}vh)`,top:`calc(${(GB-.215)*100-vh/2}vh)`,fontSize:(vh*.45)+'vh',
     boxShadow:`0 0 0 .18vh rgba(255,255,255,.8),0 0 2.2vh rgba(${ring},.9),0 0 5vh rgba(${ring},.5)`});
-  const ini=`<div class="ini">${esc(name).replace('@','').charAt(0).toUpperCase()||'✦'}</div>`;
+  const ini=`<div class="ini">${g?'✦':(esc(name).replace('@','').charAt(0).toUpperCase()||'✦')}</div>`;
   d.innerHTML=pic?`<img src="${pic}" referrerpolicy="no-referrer" onerror="this.parentNode.innerHTML='${ini.replace(/"/g,'&quot;')}'">`:ini;
   setTimeout(()=>{fx.appendChild(d);requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.add('on')))},at*1000);
   setTimeout(()=>d.classList.remove('on'),(life-1.4)*1000);setTimeout(()=>d.remove(),life*1000)}
-function nameTag(name,at,life,cls,vh,glow,dy){const d=document.createElement('div');d.className='L nm '+(cls||'');d.textContent=name;
+function nameTag(name,at,life,cls,vh,glow,dy){const g=GHOST;if(g){vh*=.75;dy*=.72;name='your name'}const d=document.createElement('div');d.className='L nm '+(cls||'')+(g?' gh':'');d.textContent=name;
   Object.assign(d.style,{top:`calc(${(GB-.215)*100+dy}vh)`,fontSize:vh+'vh',
     textShadow:`0 0 1vh rgba(${glow},.8),0 0 3vh rgba(${glow},.45),0 .2vh .5vh rgba(0,0,0,.95)`});
   setTimeout(()=>{fx.appendChild(d);requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.add('on')))},at*1000);
@@ -87,7 +92,7 @@ function swarmPos(p,t,o){ // returns [x,y,alpha] in vh units
 
 /* =================== 1. ROSE — embers gather and bloom into a rose =================== */
 function rose(name,pic){
-  const D=7, pts=[], N=650;
+  const D=6.5, pts=[], N=650;
   for(let i=0;i<N;i++){const u=i/N, th=u*7*Math.PI, r=(.6+11.5*Math.pow(u,.85))*(.82+.18*Math.cos(5*th+u*3));
     const ang=th+rnd(-.08,.08), rr=r+rnd(-.35,.35);
     const c=u<.25?'190,20,60':u<.7?'235,60,95':'255,150,160';
@@ -95,7 +100,7 @@ function rose(name,pic){
   for(let i=0;i<60;i++){const t=rnd(0,1);pts.push({x:Math.sin(t*2.4)*1.1+rnd(-.25,.25),y:9.5+t*9,c:'95,175,115',s:rnd(.25,.42),g:1})}       // slim curved stem
   for(const [side,ly] of [[1,12.5],[-1,15.2]])for(let i=0;i<55;i++){const u=rnd(0,1),w=Math.sin(Math.PI*u)*1.15*rnd(-1,1),ang=side*-.6;  // two almond leaves
     const lx=u*5.2, x=lx*Math.cos(ang)-w*Math.sin(ang), y=lx*Math.sin(ang)+w*Math.cos(ang);pts.push({x:side*(x)+Math.sin((ly-9.5)/9*2.4)*1.1,y:ly+y*side*-1*-1,c:'115,205,140',s:rnd(.22,.4),g:1})}
-  const S=swarm(pts,{spread:1.2,swirl:16}), O={gather:2.4,release:5.4,fade:1.6,drift:6,fall:14};
+  const S=swarm(pts,{spread:1.2,swirl:16}), O={gather:2.2,release:4.9,fade:1.4,drift:6,fall:14};
   const petals=[...Array(16)].map(()=>({x:rnd(-10,10),y:rnd(-6,4),vx:rnd(-3,3),r:rnd(0,6.28),d:rnd(5.3,6)}));
   scene(D,t=>{const v=VH(),X=CX(),Y=CY();cx.globalCompositeOperation='lighter';
     const bloom=cl((t-2.2)/1.2)*cl((O.release+1-t));
@@ -103,13 +108,13 @@ function rose(name,pic){
     for(const p of S){const [x,y,a]=swarmPos(p,t,O);dot(X+x*v,Y+(y+(p.g?cl(t-2.9)*2:0))*v,p.s*v*(1+.25*bloom),p.c,a*(p.g?cl(1-(t-2.9)/.9):1))}  // stem melts into the name
     for(const q of petals){if(t<q.d)continue;const k=t-q.d;dot(X+(q.x+q.vx*k+Math.sin(k*3+q.r)*1.2)*v,Y+(q.y+k*k*7)*v,.9*v,'255,90,120',cl(1-k/1.6)*.8)}
   });
-  avatar(pic,name,5.6,2.6,D-.2,'255,110,140');
-  nameTag(name,3.0,D-.3,'hand',3.6,'255,120,150',8.6);
+  avatar(pic,name,5.6,1.7,D-.2,'255,110,140');
+  nameTag(name,2.0,D-.3,'hand',3.6,'255,120,150',8.6);
 }
 
 /* =================== 2. STARS — a shooting star bursts into a crown of stars =================== */
 function stars(name,pic){
-  const D=7.5, crown=[];
+  const D=8.5, crown=[];
   for(let i=0;i<220;i++){const a=rnd(0,Math.PI*2),r=rnd(6.6,8.2)+(i%11==0?rnd(1,3):0);crown.push({a,r,s:rnd(.25,.7)*(i%11==0?2.2:1),ph:rnd(0,6.28),d:rnd(0,.5)})}
   const dust=[...Array(60)].map(()=>({x:rnd(-30,30),y:rnd(-22,-8),s:rnd(.2,.5),ph:rnd(0,6.28)}));
   scene(D,t=>{const v=VH(),X=CX(),Y=CY();cx.globalCompositeOperation='lighter';
@@ -124,13 +129,13 @@ function stars(name,pic){
       haze(X,Y,v*12,'170,190,255',.14*end);
       for(const d of dust){const a=cl((k-.4)/1.5)*end*(.4+.6*Math.sin(t*3+d.ph));dot(X+d.x*v,Y+d.y*v,d.s*v,'255,255,255',a)}}
   });
-  avatar(pic,name,6.6,1.6,D-.2,'180,200,255');
-  nameTag(name,2.2,D-.3,'',3.0,'170,195,255',10);
+  avatar(pic,name,6.6,1.4,D-.2,'180,200,255');
+  nameTag(name,1.7,D-.3,'',3.2,'170,195,255',10);
 }
 
 /* =================== 3. BUTTERFLY — light gathers into a butterfly that flies and lands =================== */
 function butterfly(name,pic){
-  const D=9, pts=[];
+  const D=12, pts=[];
   for(let i=0;i<900;i++){const tt=rnd(0,12*Math.PI), e=Math.exp(Math.cos(tt))-2*Math.cos(4*tt)-Math.pow(Math.sin(tt/12),5);
     const f=i<520?1:Math.sqrt(rnd(.05,1));                       // outline + filled wings
     const x=Math.sin(tt)*e*f, y=-Math.cos(tt)*e*f;
@@ -154,57 +159,71 @@ function butterfly(name,pic){
       if(dis>0){const ang=Math.atan2(yr,xr)+dis*2,R=Math.hypot(xr,yr)*(1-dis)+dis*7.5;gx=CX()+Math.cos(ang)*R*v;gy=Y0+Math.sin(ang)*R*v;a*=1-dis*.55}
       dot(gx,gy,p.s*v,p.c,a*cl((D-.2-t)/1.2))}
   });
-  avatar(pic,name,7,7.0,D-.2,'255,200,140');
-  nameTag(name,7.5,D-.3,'',3.0,'255,200,150',9.6);
+  avatar(pic,name,7.5,6.6,D-.2,'255,200,140');
+  nameTag(name,1.3,D-.3,'',3.4,'255,200,150',10);
 }
 
 /* =================== 4. GALAXY — the window dims, a galaxy is born and collapses into the viewer =================== */
 function galaxy(name,pic){
-  const D=12, arms=[];
+  const D=20, arms=[];
   for(let i=0;i<1500;i++){const arm=i%3, u=Math.pow(rnd(0,1),.75), th=arm*2.094+u*5.2+rnd(-.35,.35)*(1-u*.5);
     const c=u<.15?'255,235,210':u<.5?(i%4?'170,180,255':'255,170,220'):(i%5?'120,150,255':'200,140,255');
     arms.push({u,th,c,s:rnd(.2,.6)*(1.3-u*.6),z:rnd(-1,1)})}
-  const met=[...Array(8)].map((_,k)=>({d:1.2+k*1.1,y:rnd(-34,-14),x:rnd(10,40)}));
+  const met=[...Array(13)].map((_,k)=>({d:1.4+k*1.1,y:rnd(-34,-14),x:rnd(10,40)}));
   scene(D,t=>{const v=VH(),X=CX(),Y=CY();
     // the sky dims: whole window, cinematic
     const dim=cl(t/1.2)*cl((D-t)/1.5);cx.globalCompositeOperation='source-over';cx.globalAlpha=1;cx.fillStyle=`rgba(2,3,10,${.5*dim})`;cx.fillRect(0,0,W,H);
     cx.globalCompositeOperation='lighter';
-    const born=eout(cl((t-.6)/2.4)), col=eio(cl((t-8.6)/1.6)), rot=t*.35;
+    const born=eout(cl((t-.6)/2.4)), col=eio(cl((t-15.4)/1.6)), rot=t*.35;
     haze(X,Y,v*34,'90,80,200',.18*born*(1-col));haze(X,Y,v*9*(1+col),'255,230,200',(.35+.5*col)*born*cl((D-.4-t)/1.4));
     for(const a of arms){const R=a.u*26*born*(1-col*.96), th=a.th+rot*(1.4-a.u);
       const x=Math.cos(th)*R, y=Math.sin(th)*R*.42+a.z*.6;
       const tw=.6+.4*Math.sin(t*4+a.th*7);dot(X+x*v,Y+y*v,a.s*v,a.c,tw*born*cl((D-.6-t)/1.2)*(1-col*.5))}
     for(const m of met){const k=(t-m.d)/1.1;if(k<0||k>1)continue;const mx=X+(m.x-k*55)*v,my=Y+(m.y+k*9)*v;
       for(let i=0;i<26;i++){const q=i/26;dot(mx+q*v*12,my-q*v*2,(1.2-q)*v*.6,'230,240,255',(1-q)*Math.sin(Math.PI*k))}}
-    if(t>10.1){const k=(t-10.1)/1.2;haze(X,Y,v*(10+k*30),'255,240,220',.5*cl(1-k))}   // final shine
+    if(t>16.9){const k=(t-16.9)/1.4;haze(X,Y,v*(10+k*30),'255,240,220',.5*cl(1-k))}   // final shine
   });
-  avatar(pic,name,9.5,9.6,D-.2,'255,225,190');
-  nameTag(name,10.0,D-.3,'',4.0,'230,200,255',11.5);
+  avatar(pic,name,10,2.2,D-.2,'255,225,190');
+  nameTag(name,2.7,D-.3,'',4.4,'230,200,255',8.2);
 }
-const FX={rose,stars,butterfly,galaxy}, LEN={rose:7.4,stars:7.9,butterfly:9.4,galaxy:12.4};
+const FX={rose,stars,butterfly,galaxy}, LEN={rose:6.9,stars:8.9,butterfly:12.4,galaxy:20.4};
 
 /* ---------- queue so effects never pile up ---------- */
 const Q=[];let busy=false;
-function play(kind,name,pic){Q.push([kind,name,pic]);if(!busy)next()}
-function next(){const it=Q.shift();if(!it){busy=false;return}busy=true;FX[it[0]](it[1],it[2]);setTimeout(next,LEN[it[0]]*1000)}
+function play(kind,name,pic,ghost){Q.push([kind,name,pic,!!ghost]);if(!busy)next()}
+function next(){const it=Q.shift();if(!it){busy=false;return}busy=true;GHOST=it[3];FX[it[0]](it[1],it[2]);if(GHOST)caption(it[0]);GHOST=false;setTimeout(next,LEN[it[0]]*1000)}
 
 /* ---------- gift name -> effect ---------- */
-function kindOf(g){g=(g||'').toLowerCase();
-  if(g.includes('galaxy'))return'galaxy';if(g.includes('butterfly'))return'butterfly';
-  if(g.includes('star'))return'stars';if(g.includes('rose'))return'rose';return null}
+const TIER=['rose','stars','butterfly','galaxy'];
+function kindOf(g,coins,count){g=(g||'').toLowerCase();coins=+coins||0;count=+count||1;
+  let k=g.includes('galaxy')?'galaxy':g.includes('butterfly')?'butterfly':g.includes('stars snap')?'stars':g==='rose'?'rose':null;
+  const total=coins*count;
+  if(!k)k=total>=1000?'galaxy':total>=50?'butterfly':total>=10?'stars':'rose';      // any other gift, by value
+  const byTotal=total>=1000?3:total>=50?2:total>=10?1:0;                            // a streak of roses earns a bigger moment
+  return TIER[Math.max(TIER.indexOf(k),byTotal)]}
 
 /* ---------- TikFinity WebSocket ---------- */
 const WSURL=P.get('ws')||'ws://localhost:21213/';
 function connect(){ if(WSURL==='0')return; let ws;try{ws=new WebSocket(WSURL)}catch(e){return setTimeout(connect,5000)}
   ws.onmessage=m=>{try{const j=JSON.parse(m.data);const ev=j.event||j.type;const d=j.data||j;
     if(ev!=='gift')return; if(d.giftType===1&&!d.repeatEnd)return;      // wait for the end of a streak
-    const k=kindOf(d.giftName);if(k)play(k,d.nickname||d.uniqueId||'someone',d.profilePictureUrl||(d.userDetails&&d.userDetails.profilePictureUrls&&d.userDetails.profilePictureUrls[0])||'')}catch(e){}};
+    lastGift=Date.now();const k=kindOf(d.giftName,d.diamondCount,d.repeatCount);const nm=(d.nickname||d.uniqueId||'someone')+((+d.repeatCount||1)>1?'  ×'+d.repeatCount:'');play(k,nm,d.profilePictureUrl||(d.userDetails&&d.userDetails.profilePictureUrls&&d.userDetails.profilePictureUrls[0])||'')}catch(e){}};
   ws.onclose=()=>setTimeout(connect,4000)}
 connect();
 
+/* ---------- teaser: when no gift for a while, a faint "ghost" of one effect plays deep in the scene ---------- */
+const CAP={rose:'🌹 rose  →  your name blooms here',stars:'✨ stars snap  →  a crown of stars, for you',
+  butterfly:'🦋 butterfly  →  it carries your name',galaxy:'🌌 galaxy  →  the whole night is yours'};
+function caption(k){const d=document.createElement('div');d.className='L cap';d.textContent=CAP[k];
+  d.style.top=`calc(${(GB-.215)*100+12.5}vh)`;fx.appendChild(d);requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.add('on')));
+  setTimeout(()=>d.classList.remove('on'),(LEN[k]-2)*1000);setTimeout(()=>d.remove(),LEN[k]*1000)}
+let lastGift=0,ti=0;const TEASE=num('tease',150)*1000;
+function tease(){if(TEASE>0&&!busy&&Date.now()-lastGift>TEASE){play(TIER[ti++%4],'',"",true)}}
+if(TEASE>0){setTimeout(tease,25000);setInterval(tease,TEASE)}
+
 /* ---------- demo ---------- */
 const demo=P.get('demo'), dn=P.get('name')||'sarah_92';
-if(demo==='all'){['rose','stars','butterfly','galaxy'].forEach(k=>play(k,dn))}else if(demo&&FX[demo])play(demo,dn);
+if(demo==='all'){['rose','stars','butterfly','galaxy'].forEach(k=>play(k,dn))}else if(demo==='tease'){TIER.forEach(k=>play(k,'','',true))}else if(demo&&FX[demo])play(demo,dn);
 </script>
 </body>
 </html>
