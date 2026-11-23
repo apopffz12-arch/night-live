@@ -20,6 +20,8 @@ canvas{position:absolute;inset:0;width:100%;height:100%}
 .nm.hand{font-family:'Caveat',cursive;letter-spacing:.01em}
 .nm.on{opacity:1;filter:blur(0);transform:none}
 .gh.on{opacity:.42!important}
+.x-up{opacity:0!important;transform:translateY(-5vh) scale(.85)!important;filter:blur(5px)!important;transition:opacity 1.6s ease,transform 1.8s ease-in,filter 1.6s ease!important}
+.x-bloom{opacity:0!important;transform:scale(1.6)!important;filter:blur(12px) brightness(2.2)!important;transition:opacity 1.5s ease,transform 1.6s ease-out,filter 1.5s ease!important}
 .ln{left:8%;right:8%;text-align:center;font-family:'Lora',Georgia,serif;font-style:italic;color:#fbf8ff;font-size:3.3vh;line-height:1.35;opacity:0;
   filter:blur(10px);transform:translateY(.5em);transition:opacity 2s ease,filter 2s ease,transform 2s ease}
 .ln.on{opacity:1;filter:blur(0);transform:none}
@@ -67,18 +69,19 @@ function scene(dur,draw){scenes.push({t0:performance.now(),dur:dur*1000,draw,g:G
 
 /* ---------- avatar + name ---------- */
 const esc=s=>String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])).slice(0,24);
-function avatar(pic,name,vh,at,life,ring){const g=GHOST;if(g){vh*=.72;pic=''}const d=document.createElement('div');d.className='L av'+(g?' gh':'');
+let EXIT='';
+function avatar(pic,name,vh,at,life,ring){const ex=EXIT;const g=GHOST;if(g){vh*=.72;pic=''}const d=document.createElement('div');d.className='L av'+(g?' gh':'');
   Object.assign(d.style,{width:vh+'vh',height:vh+'vh',left:`calc(50% - ${vh/2}vh)`,top:`calc(${(GB-.215)*100-vh/2}vh)`,fontSize:(vh*.45)+'vh',
     boxShadow:`0 0 0 .18vh rgba(255,255,255,.8),0 0 2.2vh rgba(${ring},.9),0 0 5vh rgba(${ring},.5)`});
   const ini=`<div class="ini">${g?'✦':(esc(name).replace('@','').charAt(0).toUpperCase()||'✦')}</div>`;
   d.innerHTML=pic?`<img src="${pic}" referrerpolicy="no-referrer" onerror="this.parentNode.innerHTML='${ini.replace(/"/g,'&quot;')}'">`:ini;
   setTimeout(()=>{fx.appendChild(d);requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.add('on')))},at*1000);
-  setTimeout(()=>d.classList.remove('on'),(life-1.4)*1000);setTimeout(()=>d.remove(),life*1000)}
-function nameTag(name,at,life,cls,vh,glow,dy){const g=GHOST;if(g){vh*=.75;dy*=.72;name='your name'}const d=document.createElement('div');d.className='L nm '+(cls||'')+(g?' gh':'');d.textContent=name;
+  setTimeout(()=>ex?d.classList.add(ex):d.classList.remove('on'),(life-1.6)*1000);setTimeout(()=>d.remove(),life*1000)}
+function nameTag(name,at,life,cls,vh,glow,dy){const ex=EXIT;const g=GHOST;if(g){vh*=.75;dy*=.72;name='your name'}const d=document.createElement('div');d.className='L nm '+(cls||'')+(g?' gh':'');d.textContent=name;
   Object.assign(d.style,{top:`calc(${(GB-.215)*100+dy}vh)`,fontSize:vh+'vh',
     textShadow:`0 0 1vh rgba(${glow},.8),0 0 3vh rgba(${glow},.45),0 .2vh .5vh rgba(0,0,0,.95)`});
   setTimeout(()=>{fx.appendChild(d);requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.add('on')))},at*1000);
-  setTimeout(()=>d.classList.remove('on'),(life-1.6)*1000);setTimeout(()=>d.remove(),life*1000)}
+  setTimeout(()=>ex?d.classList.add(ex):d.classList.remove('on'),(life-1.7)*1000);setTimeout(()=>d.remove(),life*1000)}
 
 /* generic swarm: particles fly in on curved paths, hold & shimmer, then release */
 function swarm(pts,o){ // pts: [{x,y,c,s}] in units of vh relative to stage centre
@@ -127,13 +130,13 @@ function stars(name,pic){
     // 2) flash + crown
     const fl=cl(1-(t-1.3)/.9)*(t>1.3?1:0);haze(X,Y,v*30,'190,210,255',.35*fl);
     if(t>1.3){const k=t-1.3, end=cl((D-.3-t)/1.4);
-      for(const c of crown){const e=eout(cl((k-c.d*.4)/1.1)), r=c.r*e, a=c.a+k*.12;
-        const tw=.55+.45*Math.sin(t*5+c.ph);dot(X+Math.cos(a)*r*v,Y+Math.sin(a)*r*v*.95,c.s*v*(1+fl),'215,228,255',tw*end*e)}
+      const rise=cl((t-(D-2.4))/2.2);for(const c of crown){const e=eout(cl((k-c.d*.4)/1.1)), r=c.r*e*(1+rise*.6), a=c.a+k*.12+rise*c.ph*.1;
+        const tw=.55+.45*Math.sin(t*5+c.ph);dot(X+Math.cos(a)*r*v,Y+(Math.sin(a)*r*.95-rise*rise*(18+c.ph*3))*v,c.s*v*(1+fl),'215,228,255',tw*e*(rise>0?1-rise*.85:end))}
       haze(X,Y,v*12,'170,190,255',.14*end);
       for(const d of dust){const a=cl((k-.4)/1.5)*end*(.4+.6*Math.sin(t*3+d.ph));dot(X+d.x*v,Y+d.y*v,d.s*v,'255,255,255',a)}}
   });
-  avatar(pic,name,6.6,1.4,D-.2,'180,200,255');
-  nameTag(name,1.7,D-.3,'',3.2,'170,195,255',10);
+  EXIT='x-up';avatar(pic,name,6.6,1.4,D-.2,'180,200,255');
+  nameTag(name,1.7,D-.3,'',3.2,'170,195,255',10);EXIT='';
 }
 
 /* =================== 3. BUTTERFLY — light gathers into a butterfly that flies and lands =================== */
@@ -159,11 +162,11 @@ function butterfly(name,pic){
     haze(X,Y,v*16,'150,190,255',.12*cl(t-1.5)*(1-dis));
     for(const p of S){let [x,y,a]=swarmPos(p,t,O);x*=flap;const xr=x*Math.cos(tilt)-y*Math.sin(tilt),yr=x*Math.sin(tilt)+y*Math.cos(tilt);
       let gx=X+xr*v*(1-dis*.3), gy=Y+yr*v;
-      if(dis>0){const ang=Math.atan2(yr,xr)+dis*2,R=Math.hypot(xr,yr)*(1-dis)+dis*7.5;gx=CX()+Math.cos(ang)*R*v;gy=Y0+Math.sin(ang)*R*v;a*=1-dis*.55}
+      if(dis>0){const lift=cl((t-(D-2.6))/2.4),ang=Math.atan2(yr,xr)+dis*2+t*.3,R=Math.hypot(xr,yr)*(1-dis)+dis*7.5+lift*6;gx=CX()+Math.cos(ang)*R*v+Math.sin(t*3+p.ph)*lift*2*v;gy=Y0+Math.sin(ang)*R*v-lift*lift*(14+p.ph*4)*v;a*=(1-dis*.55)*(1-lift*.7)}
       dot(gx,gy,p.s*v,p.c,a*cl((D-.2-t)/1.2))}
   });
-  avatar(pic,name,7.5,6.6,D-.2,'255,200,140');
-  nameTag(name,1.3,D-.3,'',3.4,'255,200,150',10);
+  EXIT='x-up';avatar(pic,name,7.5,6.6,D-.2,'255,200,140');
+  nameTag(name,1.3,D-.3,'',3.4,'255,200,150',10);EXIT='';
 }
 
 /* =================== 4. GALAXY — the window dims, a galaxy is born and collapses into the viewer =================== */
@@ -184,31 +187,37 @@ function galaxy(name,pic){
       const tw=.6+.4*Math.sin(t*4+a.th*7);dot(X+x*v,Y+y*v,a.s*v,a.c,tw*born*cl((D-.6-t)/1.2)*(1-col*.5))}
     for(const m of met){const k=(t-m.d)/1.1;if(k<0||k>1)continue;const mx=X+(m.x-k*55)*v,my=Y+(m.y+k*9)*v;
       for(let i=0;i<26;i++){const q=i/26;dot(mx+q*v*12,my-q*v*2,(1.2-q)*v*.6,'230,240,255',(1-q)*Math.sin(Math.PI*k))}}
-    if(t>16.9){const k=(t-16.9)/1.4;haze(X,Y,v*(10+k*30),'255,240,220',.5*cl(1-k))}   // final shine
+    if(t>16.9){const k=(t-16.9)/1.4;haze(X,Y,v*(10+k*30),'255,240,220',.5*cl(1-k));for(let i=0;i<140;i++){const an=i/140*6.283,R=eout(cl(k/1.6))*46;dot(X+Math.cos(an)*R*v,Y+Math.sin(an)*R*.5*v,(.5+(i%7==0)*.6)*v,i%3?'200,210,255':'255,220,240',.8*cl(1-k/1.6))}}   // final shine
   });
-  avatar(pic,name,10,2.2,D-.2,'255,225,190');
-  nameTag(name,2.7,D-.3,'',4.4,'230,200,255',8.2);
+  EXIT='x-bloom';avatar(pic,name,10,2.2,D-.2,'255,225,190');
+  nameTag(name,2.7,D-.3,'',4.4,'230,200,255',8.2);EXIT='';
 }
 const FX={rose,stars,butterfly,galaxy}, LEN={rose:6.9,stars:8.9,butterfly:12.4,galaxy:20.4};
 
 /* ---------- the dedication: a cloud rolls over the on-screen phrase and a line is spoken to the giver ---------- */
 const LINES={
- rose:['you\'re allowed to rest tonight.','still here. still soft.','the night is kinder with you.','some hearts stay warm. yours did.'],
- stars:['you made it through worse.','look up. it didn\'t win.','you\'re lighter than you think.','we survived every night so far.'],
- butterfly:['what broke you gave you wings.','let it go. you\'ll fly.','you\'re becoming someone new.','it hurt. and you grew anyway.'],
- galaxy:['we\'ve been sad. we\'re still here.','you\'re the reason this night shines.','keep going. the stars are on your side.','we got used to the dark. now we glow.']};
+ rose:['you\'re lovely, just as you are.','the night is softer with you here.','rest now. you\'ve done enough today.','some hearts stay warm. yours did.'],
+ stars:['you\'re beautiful. the stars will come.','make a wish. the night is listening.','don\'t worry. your light is on its way.','you shine more than you know.'],
+ butterfly:['what broke you gave you wings.','let it go. you\'ll fly.','you\'re becoming someone beautiful.','it hurt. and you bloomed anyway.'],
+ galaxy:['we\'ve been sad. we\'re still here.','you are someone\'s favorite star.','the whole night glows because of you.','we got used to the dark. now we glow.']};
 const lastLine={};
 function veil(kind,D){
   const pool=LINES[kind];let l;do{l=pool[Math.floor(Math.random()*pool.length)]}while(pool.length>1&&l===lastLine[kind]);lastLine[kind]=l;
-  const puffs=[...Array(26)].map(()=>({x:rnd(-.1,1.1),y:rnd(GT+.07,GT+.25),r:rnd(.10,.2),ph:rnd(0,6.28),sp:rnd(-.012,.012)}));
+  const cy=GT+.165, puffs=[];                       // cloud silhouette in canvas-width units (circles)
+  for(let i=0;i<9;i++){const u=i/8;puffs.push({x:.1+.8*u+rnd(-.02,.02),y:-.06-Math.sin(Math.PI*u)*.045+(i%2)*.022,r:rnd(.1,.14)*(.7+.4*Math.sin(Math.PI*u)),ph:rnd(0,6.28),top:1})}
+  for(let i=0;i<8;i++){const u=i/7;puffs.push({x:.08+.84*u,y:rnd(-.01,.02),r:rnd(.12,.15),ph:rnd(0,6.28)})}
+  for(let i=0;i<7;i++){const u=i/6;puffs.push({x:.12+.76*u,y:.075+rnd(-.008,.008),r:rnd(.1,.13),ph:rnd(0,6.28)})}
+  for(let i=0;i<6;i++){const u=i/5;puffs.push({x:.18+.64*u,y:.105,r:rnd(.09,.115),ph:rnd(0,6.28)})}
   const g0=GHOST;GHOST=false;
-  scene(D,t=>{const a=cl((t-.3)/1.6)*cl((D-t)/1.8);cx.globalCompositeOperation='source-over';
-    {const y0=(GT+.035)*H,y1=(GT+.29)*H,g=cx.createLinearGradient(0,y0,0,y1);g.addColorStop(0,'rgba(12,15,27,0)');g.addColorStop(.2,`rgba(12,15,27,${.93*a})`);
-     g.addColorStop(.8,`rgba(12,15,27,${.93*a})`);g.addColorStop(1,'rgba(12,15,27,0)');cx.globalAlpha=1;cx.fillStyle=g;cx.fillRect(0,y0,W,y1-y0)}
-    for(const p of puffs){const x=(p.x+p.sp*t)*W, y=p.y*H+Math.sin(t*.6+p.ph)*H*.004, r=p.r*W*(1+.06*Math.sin(t*.8+p.ph));
-      const g=cx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(14,17,30,${.45*a})`);g.addColorStop(.55,`rgba(16,19,34,${.25*a})`);g.addColorStop(1,'rgba(16,19,34,0)');
-      cx.globalAlpha=1;cx.fillStyle=g;cx.fillRect(x-r,y-r,2*r,2*r)}
-    cx.globalCompositeOperation='lighter';for(const p of puffs.slice(0,8)){haze((p.x+p.sp*t)*W,p.y*H,p.r*W*.6,'150,165,220',.05*a)}});
+  scene(D,t=>{const a=eout(cl((t-.1)/1.5))*cl((D-t)/1.6), br=1+.03*Math.sin(t*1.7), dr=(1-a)*.04;   // breathes ~ once every 3.7s
+    const X0=W/2, Y0=cy*H-dr*W;
+    cx.globalCompositeOperation='source-over';cx.globalAlpha=1;
+    for(const p of puffs){const r=p.r*W*br*(1+.035*Math.sin(t*1.3+p.ph))*(.86+.14*a), x=X0+(p.x-.5)*W*(.94+.06*a)+Math.sin(t*.5+p.ph)*W*.004, y=Y0+p.y*W;
+      const g=cx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(17,21,38,${.9*a})`);g.addColorStop(.55,`rgba(20,25,44,${.72*a})`);g.addColorStop(1,'rgba(22,28,48,0)');
+      cx.fillStyle=g;cx.fillRect(x-r,y-r,2*r,2*r)}
+    cx.globalCompositeOperation='lighter';const pulse=.5+.5*Math.sin(t*1.7);
+    for(const p of puffs){if(!p.top)continue;const x=X0+(p.x-.5)*W,y=Y0+(p.y-.045)*W;haze(x,y,p.r*W*.9,'150,170,240',(.05+.035*pulse)*a)}   // moonlit rim
+    haze(X0,Y0,W*.42,'120,140,220',(.03+.03*pulse)*a);});
   GHOST=g0;
   const d=document.createElement('div');d.className='L ln';d.textContent=l;d.style.top=`calc(${(GT+.125)*100}vh)`;
   d.style.textShadow='0 0 1.2vh rgba(190,205,255,.55),0 0 3vh rgba(150,170,255,.3),0 .2vh .5vh rgba(0,0,0,.95)';
