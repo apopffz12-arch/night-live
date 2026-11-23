@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>night frame v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;1,500&family=Lora:ital,wght@1,500;1,600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+html,body{margin:0;padding:0;width:100%;height:100%;background:transparent;overflow:hidden}
+:root{--gt:22.7vh;--gb:67vh;--gx:1.4vw;--size:3.35vh;
+      --ink:4,8,18; --cool:120,170,255; --teal:70,200,230; --sodium:255,160,70; --neon:235,80,170}
+.L{position:absolute;pointer-events:none}
+.full{inset:0}
+
+/* ---------- 1. the game window: cool grade + soft edges + neon reflections ---------- */
+#win{left:var(--gx);right:var(--gx);top:var(--gt);height:calc(var(--gb) - var(--gt));border-radius:1.6vh;overflow:hidden}
+#tint{inset:0;background:rgba(18,40,86,var(--tintA,.16))}
+#fT{left:0;right:0;top:0;height:7vh;background:linear-gradient(to bottom,rgba(var(--ink),.85),rgba(var(--ink),0))}
+#fB{left:0;right:0;bottom:0;height:9vh;background:linear-gradient(to top,rgba(var(--ink),.9),rgba(var(--ink),0))}
+#inner{inset:0;box-shadow:inset 0 0 5vh rgba(var(--ink),.65);border-radius:1.6vh}
+#edgeT{left:var(--gx);right:var(--gx);top:var(--gt);height:1px;
+       background:linear-gradient(90deg,transparent 5%,rgba(var(--teal),.55) 35%,rgba(var(--neon),.35) 70%,transparent 95%);
+       filter:drop-shadow(0 0 4px rgba(var(--teal),.8))}
+#edgeB{left:var(--gx);right:var(--gx);top:var(--gb);height:1px;
+       background:linear-gradient(90deg,transparent 5%,rgba(var(--sodium),.45) 40%,rgba(var(--teal),.3) 75%,transparent 95%);
+       filter:drop-shadow(0 0 4px rgba(var(--sodium),.7))}
+
+/* ---------- 2. bands: city-light bokeh, darker at the bottom so comments stay readable ---------- */
+#bandT{left:0;right:0;top:0;height:var(--gt);overflow:hidden;background:linear-gradient(to bottom,rgba(var(--ink),.35),rgba(var(--ink),.1))}
+#bandB{left:0;right:0;top:var(--gb);bottom:0;overflow:hidden;background:linear-gradient(to bottom,rgba(var(--ink),.25),rgba(var(--ink),.78))}
+.bk{position:absolute;border-radius:50%;filter:blur(1.1vh);animation:drift linear infinite, glow ease-in-out infinite alternate}
+@keyframes drift{from{transform:translateX(0)}to{transform:translateX(var(--dx))}}
+@keyframes glow{from{opacity:var(--o1)}to{opacity:var(--o2)}}
+
+/* ---------- 3. rain on the glass ---------- */
+#glass{inset:0}
+.dp{position:absolute;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.55) 0 18%,rgba(200,215,255,.10) 40%,rgba(0,0,0,.18) 75%,transparent 78%)}
+.run{position:absolute;width:.5vh;border-radius:50%;
+     background:linear-gradient(to bottom,rgba(210,225,255,0),rgba(210,225,255,.22) 80%,rgba(255,255,255,.6));
+     animation:run linear 1 forwards}
+@keyframes run{from{transform:translateY(0);opacity:0}8%{opacity:1}to{transform:translateY(var(--dy));opacity:0}}
+
+/* ---------- 4. breathing vignette ---------- */
+#breath{inset:0;background:radial-gradient(ellipse 75% 60% at 50% 42%,transparent 55%,rgba(var(--ink),.55) 100%);
+        animation:breathe 5.5s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.55}50%{opacity:.85}}
+
+/* ---------- 5. title (between TikTok's ranking row and the game) ---------- */
+#head{left:0;right:0;top:calc(var(--gt) - 7.6vh);height:7vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+#title{font-family:'Cormorant Garamond',Georgia,serif;font-style:italic;font-size:2.7vh;color:#f1f1ff;letter-spacing:.05em;
+       text-shadow:0 0 10px rgba(var(--cool),.55),0 0 26px rgba(var(--cool),.3),0 2px 4px rgba(0,0,0,.9)}
+.mono{font-family:'IBM Plex Mono',monospace;text-transform:lowercase;white-space:nowrap;color:rgba(230,234,255,.6);text-shadow:0 1px 3px rgba(0,0,0,.9)}
+#sub{margin-top:.5vh;font-size:1.05vh;letter-spacing:.3em}
+#song{margin-top:.5vh;font-size:1.05vh;letter-spacing:.12em;color:rgba(var(--sodium),.8)}
+
+/* ---------- 6. phrases: upper half of the game window, out of the comments' way ---------- */
+#stage{left:0;right:0;top:calc(var(--gt) + 3vh);height:calc((var(--gb) - var(--gt)) * .48);display:flex;align-items:center;justify-content:center}
+.card{position:relative;max-width:80vw;text-align:center;opacity:0;transition:opacity .8s ease}
+.card::before{content:"";position:absolute;inset:-30% -12%;z-index:-1;border-radius:50%;
+      background:radial-gradient(ellipse at center,rgba(var(--ink),.62) 0%,rgba(var(--ink),.3) 50%,transparent 74%)}
+.card.show{opacity:1}
+.card.hide{opacity:0;filter:blur(10px);transform:translateY(-8px);transition:opacity 2.4s ease,filter 2.4s ease,transform 2.4s ease}
+.icon{width:calc(var(--size)*1.05);height:calc(var(--size)*1.05);margin:0 auto 1vh;display:block;stroke:#eef0ff;fill:none;
+      stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 6px rgba(var(--cool),.85));opacity:.9}
+.text{font-family:'Lora',Georgia,serif;font-style:italic;font-weight:500;font-size:var(--size);line-height:1.38;color:#f4f3ff;
+      text-wrap:balance;letter-spacing:.005em;
+      text-shadow:0 0 8px rgba(var(--cool),.4),0 0 22px rgba(var(--cool),.22),0 2px 5px rgba(0,0,0,.95)}
+.w{display:inline-block;opacity:0;filter:blur(8px);transform:translateY(.35em);
+   transition:opacity 1.1s ease,filter 1.1s ease,transform 1.1s ease;transition-delay:var(--d)}
+.card.show .w{opacity:1;filter:blur(0);transform:none}
+.k{color:#ffe2c2;text-shadow:0 0 10px rgba(var(--sodium),.55),0 0 26px rgba(var(--sodium),.3),0 2px 5px rgba(0,0,0,.95)}
+.rule{width:0;height:1px;margin:1.3vh auto 0;background:linear-gradient(90deg,transparent,rgba(225,230,255,.7),transparent);transition:width 2.6s ease .8s}
+.card.show .rule{width:38%}
+
+/* ---------- micro-events: small things that catch the eye ---------- */
+.fx{position:absolute;pointer-events:none}
+.glint{height:2px;width:14vw;border-radius:2px;filter:blur(1px);
+       background:linear-gradient(90deg,transparent,rgba(255,255,255,.95),transparent);box-shadow:0 0 12px rgba(var(--teal),.9);
+       animation:glint 2.2s ease-in-out 1 forwards}
+@keyframes glint{from{transform:translateX(0);opacity:0}15%{opacity:1}85%{opacity:1}to{transform:translateX(var(--dx));opacity:0}}
+.pass{height:9vh;width:45vw;border-radius:50%;filter:blur(3vh);mix-blend-mode:screen;
+      background:radial-gradient(ellipse at center,rgba(var(--c),.55),rgba(var(--c),0) 70%);
+      animation:pass 3.2s ease-in-out 1 forwards}
+@keyframes pass{from{transform:translateX(var(--x0));opacity:0}25%{opacity:1}75%{opacity:1}to{transform:translateX(var(--x1));opacity:0}}
+.flare{height:1.5px;width:30vw;filter:blur(.6px);
+       background:linear-gradient(90deg,transparent,rgba(130,190,255,.85),rgba(255,255,255,1),rgba(130,190,255,.85),transparent);
+       box-shadow:0 0 14px rgba(110,170,255,.9);animation:flare 1.6s ease-out 1 forwards}
+@keyframes flare{0%{opacity:0;transform:scaleX(.2)}12%{opacity:.9;transform:scaleX(1)}30%{opacity:.35}45%{opacity:.75}100%{opacity:0;transform:scaleX(1.15)}}
+.neon{width:3.5vh;height:3.5vh;border-radius:50%;filter:blur(1.2vh);background:rgba(var(--neon),.9);animation:buzz 2.4s steps(1) 1 forwards}
+@keyframes buzz{0%{opacity:0}10%{opacity:.55}14%{opacity:.08}18%{opacity:.6}22%{opacity:.1}30%{opacity:.5}70%{opacity:.45}100%{opacity:0}}
+.spark{width:1.4vh;height:1.4vh;animation:spark 1.8s ease-in-out 1 forwards}
+.spark::before,.spark::after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:1px;box-shadow:0 0 6px #fff,0 0 12px rgba(var(--cool),1)}
+.spark::before{width:100%;height:1.5px;transform:translate(-50%,-50%)}
+.spark::after{height:100%;width:1.5px;transform:translate(-50%,-50%)}
+@keyframes spark{0%{opacity:0;transform:scale(.2) rotate(0)}40%{opacity:1;transform:scale(1) rotate(45deg)}100%{opacity:0;transform:scale(.3) rotate(90deg)}}
+
+/* ---------- 7. lightning ---------- */
+#bolt{inset:0;background:radial-gradient(ellipse at 60% 15%,rgba(225,232,255,1),rgba(190,205,255,.6) 60%,rgba(170,185,255,.4))}
+#bolt{opacity:0}
+#bolt.go{animation:sky 1.5s ease-out 1}
+@keyframes sky{0%{opacity:0}4%{opacity:.2}9%{opacity:.03}16%{opacity:.14}26%{opacity:.02}100%{opacity:0}}
+
+/* ---------- 8. the rare moment ---------- */
+#dim{inset:0;background:rgba(2,4,10,.5);opacity:0;transition:opacity 2.5s ease}
+#dim.on{opacity:1}
+#moment{left:8vw;right:8vw;top:var(--gt);height:calc((var(--gb) - var(--gt)) * .7);display:flex;align-items:center;justify-content:center;text-align:center;opacity:0;transition:opacity 2s ease}
+#moment.on{opacity:1}
+#mtext{font-family:'IBM Plex Mono',monospace;font-size:2vh;line-height:1.8;color:#eef0ff;letter-spacing:.02em;
+       text-shadow:0 0 10px rgba(var(--cool),.5),0 2px 4px rgba(0,0,0,.95)}
+.cur{display:inline-block;margin-left:.15em;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+</style>
+</head>
+<body>
+<div class="L full" id="bandT"></div>
+<div class="L" id="bandB"></div>
+<div class="L" id="win"><div class="L" id="tint"></div><div class="L" id="fT"></div><div class="L" id="fB"></div><div class="L" id="inner"></div></div>
+<div class="L" id="edgeT"></div><div class="L" id="edgeB"></div>
+<div class="L" id="breath"></div>
+<div class="L" id="glass"></div>
+<div class="L" id="head"><div id="title"></div><div id="sub" class="mono"></div><div id="song" class="mono"></div></div>
+<div class="L" id="stage"><div class="card" id="card"><svg class="icon" id="icon" viewBox="0 0 24 24"></svg><div class="text" id="text"></div><div class="rule"></div></div></div>
+<div class="L" id="dim"></div>
+<div class="L" id="moment"><div id="mtext"></div></div>
+<div class="L full" id="fxl"></div>
+<div class="L" id="bolt"></div>
+<script>
+/* ===================== settings (add to the end of the link) =====================
+   ?gt=22.7 ?gb=67     where the game window starts / ends (% of screen height)
+   ?title=rainy night drive   ?sub=sad songs · cold streets · stay a while
+   ?song=artist - title       small "now playing" line (empty = hidden)
+   ?show=12 ?gap=8            phrase timing (seconds)
+   ?moment=10                 minutes between the rare moments (0 = off)
+   ?tint=0.16                 cool blue grade over the game (0 = off)
+   ?size=3.35                 phrase size
+   ?glass=0  ?bokeh=0  ?bolt=0  ?head=0  ?fx=0 (no small light events)
+=================================================================================== */
+const P=new URLSearchParams(location.search),$=id=>document.getElementById(id),R=document.documentElement.style;
+const num=(k,d)=>{const v=parseFloat(P.get(k));return isNaN(v)?d:v}, off=k=>P.get(k)==='0';
+R.setProperty('--gt',num('gt',22.7)+'vh'); R.setProperty('--gb',num('gb',67)+'vh'); R.setProperty('--tintA',num('tint',.16)); R.setProperty('--size',num('size',3.35)+'vh');
+const SHOW=num('show',12)*1000, GAP=num('gap',8)*1000, MOMENT=num('moment',10)*60000;
+const rnd=(a,b)=>a+Math.random()*(b-a);
+
+$('title').textContent=P.get('title')||'rainy night drive';
+$('sub').textContent=P.get('sub')||'sad songs · cold streets · stay a while';
+if(P.get('song')) $('song').textContent='♪  now playing — '+P.get('song'); else $('song').style.display='none';
+if(off('head')) $('head').style.display='none';
+
+/* bokeh: blurred city lights drifting in the bands */
+const PAL=[['--sodium',.9],['--teal',.7],['--neon',.45],['--cool',.8]];
+function bokeh(host,n){
+  for(let i=0;i<n;i++){
+    const b=document.createElement('div'),s=rnd(2.5,8),c=PAL[Math.floor(Math.random()*PAL.length)];
+    const col=getComputedStyle(document.documentElement).getPropertyValue(c[0]).trim();
+    Object.assign(b.style,{width:s+'vh',height:s+'vh',left:rnd(-5,100)+'%',top:rnd(0,85)+'%',
+      background:`radial-gradient(circle,rgba(${col},${c[1]}) 0%,rgba(${col},0) 70%)`});
+    b.className='bk';
+    b.style.setProperty('--dx',rnd(-6,6)+'vw'); b.style.setProperty('--o1',rnd(.05,.12)); b.style.setProperty('--o2',rnd(.18,.32));
+    b.style.animationDuration=rnd(40,80)+'s,'+rnd(4,9)+'s';
+    b.style.animationDirection='alternate,alternate';
+    host.appendChild(b);
+  }
+}
+if(!off('bokeh')){ bokeh($('bandT'),7); bokeh($('bandB'),11); }
+
+/* rain on glass: static drops + a few drops that slide down */
+const glass=$('glass');
+if(!off('glass')){
+  for(let i=0;i<60;i++){ const d=document.createElement('div'),s=rnd(.25,.8); d.className='dp';
+    Object.assign(d.style,{width:s+'vh',height:(s*rnd(1,1.25))+'vh',left:rnd(0,100)+'%',top:rnd(0,100)+'%',opacity:rnd(.35,.8)}); glass.appendChild(d); }
+  (function slide(){
+    const r=document.createElement('div'),h=rnd(3,8); r.className='run';
+    Object.assign(r.style,{height:h+'vh',left:rnd(3,97)+'%',top:rnd(-5,40)+'%',animationDuration:rnd(5,10)+'s'});
+    r.style.setProperty('--dy',rnd(25,60)+'vh'); glass.appendChild(r); setTimeout(()=>r.remove(),11000);
+    setTimeout(slide,rnd(1800,4500));
+  })();
+}
+
+/* lightning */
+const bolt=$('bolt');
+function strike(){ if(off('bolt'))return; bolt.classList.remove('go'); void bolt.offsetWidth; bolt.classList.add('go'); }
+
+/* phrases: sometimes the thunder brings the thought */
+const LINES=[
+  "i thought i was over it. then the *rain* started.",
+  "i keep driving like i'm going *somewhere.*",
+  "i was the one who *stayed.* that was my mistake.",
+  "maybe i'm not lost. maybe i just don't want to go *home.*",
+  "i gave too much and called it *love.*",
+  "the *thunder* is louder than my thoughts tonight. good.",
+  "i told everyone i'm fine. even *myself.*",
+  "i need to leave before i become someone i don't recognize.",
+  "i thought i was *stronger* than this.",
+  "every red light gives me time to think about you. i hate red lights.",
+  "i miss who i was before i learned to *wait* for replies.",
+  "some nights i drive just to feel like i'm moving on.",
+  "i forgave you so many times i forgot to forgive *myself.*",
+  "the road doesn't ask questions. that's why i like it.",
+  "i should have left when it first started hurting.",
+  "i'm not angry. i'm just tired of being the one who understands.",
+  "i keep the music loud so i can't hear myself.",
+  "i used to be soft. now i'm just quiet.",
+  "i don't want you back. i want *me* back.",
+  "it's raining, and for once i don't have to pretend.",
+  "i thought love would feel like home. it felt like waiting.",
+  "i drove past your street again. i didn't stop. that's progress.",
+  "the *storm* outside is calmer than the one in me.",
+  "i keep saying it's the last time.",
+  "i need distance. not from you. from the version of me that stayed.",
+  "3 am and i'm still explaining myself to no one.",
+  "i'm learning to let the *rain* do the crying.",
+  "i loved the idea of you more than i loved myself.",
+  "i'm not running away. i'm running back to myself.",
+  "headlights, rain, and the same old thoughts.",
+  "i should be asleep. but the road feels more honest.",
+  "i'm *sorry,* me. i kept choosing them.",
+  "i swore i wouldn't look back. the mirror's right there though.",
+  "every time it thunders, i flinch at my own memories.",
+  "i stayed quiet so you wouldn't leave. you left anyway.",
+  "some goodbyes you say out loud. mine are just long *drives.*",
+  "i don't miss you. i miss the *hope.*",
+  "tonight the *engine* says what i couldn't.",
+  "i'm tired of being strong where no one can see.",
+  "the rain doesn't fix anything. it just makes it okay to feel it.",
+  "i keep healing in the same places i keep breaking.",
+  "i thought i'd be *better* by now.",
+  "i wasn't too much. i was just in the wrong hands.",
+  "i keep the windows down so the cold can wake me up.",
+  "i built a *home* in someone who was only passing through.",
+  // talk to the viewers
+  "who are you thinking about right now?",
+  "drop a 🌧 if you're driving through something too.",
+  "*stay* a while. the rain isn't stopping.",
+];
+const ICONS={
+  bolt:  '<path d="M13 2 5 13.5h6L10 22l8-11.5h-6z"/>',
+  drop:  '<path d="M12 3c3.5 4.6 6 8 6 11a6 6 0 0 1-12 0c0-3 2.5-6.4 6-11z"/>',
+  moon:  '<path d="M20 14.5A8.5 8.5 0 1 1 9.5 4 7 7 0 0 0 20 14.5z"/>',
+  storm: '<path d="M7 16a4.5 4.5 0 1 1 1-8.9A6 6 0 0 1 19.5 9 3.6 3.6 0 0 1 18 16"/><path d="m13 13-2.5 4h3L11 21"/>',
+  rain:  '<path d="M7 14a4.5 4.5 0 1 1 1-8.9A6 6 0 0 1 19.5 7 3.6 3.6 0 0 1 18 14"/><path d="M8 17l-1 3M12 17l-1 3M16 17l-1 3"/>',
+  road:  '<path d="M9 21 11 3M15 21 13 3"/><path d="M12 7v2M12 12v2M12 17v2"/>',
+}; const KEYS=Object.keys(ICONS);
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+let q=[],last=null,lastI=null,paused=false;
+const nextLine=()=>{if(!q.length){q=shuffle(LINES.slice());if(q[0]===last)q.push(q.shift())}return last=q.shift()};
+const nextIcon=()=>{let k;do{k=KEYS[Math.floor(Math.random()*KEYS.length)]}while(k===lastI);return lastI=k};
+const card=$('card');
+function showPhrase(){
+  const t=$('text'); t.innerHTML='';
+  nextLine().split(' ').forEach((w,i)=>{
+    const sp=document.createElement('span'); let key=false;
+    if(/^\*.*\*[.,!?]*$/.test(w)){ key=true; w=w.replace(/\*/g,''); }
+    sp.className='w'+(key?' k':''); sp.textContent=w; sp.style.setProperty('--d',(0.25+i*0.13)+'s');
+    t.appendChild(sp); t.appendChild(document.createTextNode(' '));
+  });
+  $('icon').innerHTML=ICONS[nextIcon()];
+  card.classList.remove('hide'); void card.offsetWidth; card.classList.add('show');
+  setTimeout(()=>{card.classList.remove('show');card.classList.add('hide')},SHOW);
+}
+function cycle(){
+  if(paused){ setTimeout(cycle,3000); return; }
+  if(Math.random()<.35){ strike(); setTimeout(showPhrase,1300); } else showPhrase();
+  setTimeout(cycle,SHOW+GAP+1300);
+}
+setTimeout(cycle,2000);
+
+/* the rare moment */
+const MOMENTS=[
+ "it's late, the city is empty, and somehow you're still here with me. stay a while.",
+ "some of us don't drive to get somewhere. we drive so the thoughts have room to breathe.",
+ "whatever you're carrying tonight, you don't have to carry it alone.",
+ "the rain will stop eventually. so will this feeling. until then, we drive.",
+ "i never said the things i should have. so i say them to the road.",
+ "to whoever is listening from the other side of the world: i hope the storm is quieter where you are.",
+];
+let mq=[];
+function moment(){
+  paused=true; card.classList.remove('show'); card.classList.add('hide');
+  setTimeout(()=>{
+    strike(); $('dim').classList.add('on');
+    if(!mq.length) mq=shuffle(MOMENTS.slice());
+    const s=mq.shift(), el=$('mtext'); el.innerHTML='<span></span><span class="cur">▍</span>'; const sp=el.firstChild;
+    setTimeout(()=>{ $('moment').classList.add('on'); let i=0; const t=setInterval(()=>{sp.textContent=s.slice(0,++i); if(i>=s.length)clearInterval(t)},60); },1500);
+    setTimeout(()=>{ $('moment').classList.remove('on'); $('dim').classList.remove('on'); },1500+s.length*60+9000);
+    setTimeout(()=>{ paused=false; },1500+s.length*60+12000);
+  },2600);
+  setTimeout(moment,MOMENT);
+}
+if(MOMENT>0) setTimeout(moment,MOMENT);
+/* micro-events: every few seconds, something small happens somewhere */
+const fxl=$('fxl'), vh=v=>v*innerHeight/100;
+const GT=num('gt',22.7), GB=num('gb',67);
+function add(cls,css,vars,life){ const e=document.createElement('div'); e.className='fx '+cls; Object.assign(e.style,css);
+  for(const k in vars) e.style.setProperty(k,vars[k]); fxl.appendChild(e); setTimeout(()=>e.remove(),life); }
+const FX=[
+  ()=>{ const top=Math.random()<.6?GT:GB; const l2r=Math.random()<.5;   // light running along the glass edge
+        add('glint',{top:(top-0.1)+'vh',left:l2r?'0':'auto',right:l2r?'auto':'0'},{'--dx':(l2r?'':'-')+'86vw'},2400); },
+  ()=>{ const band=Math.random()<.5?[3,GT-6]:[GB+2,95]; const l2r=Math.random()<.5;  // car passing outside
+        const c=Math.random()<.6?'255,170,90':'200,220,255';
+        add('pass',{top:rnd(band[0],band[1])+'vh',left:'0'},{'--c':c,'--x0':l2r?'-50vw':'105vw','--x1':l2r?'105vw':'-50vw'},3400); },
+  ()=>{ const y=Math.random()<.5?rnd(4,GT-4):rnd(GB+4,92);              // anamorphic flare
+        add('flare',{top:y+'vh',left:rnd(5,65)+'vw'},{},1700); },
+  ()=>{ add('neon',{top:rnd(2,GT-5)+'vh',left:rnd(5,90)+'vw'},{},2500); }, // broken neon sign
+  ()=>{ const zones=[[2,GT-2],[GT+30,GB-2],[GB+2,96]]; const z=zones[Math.floor(Math.random()*3)]; // drop catching light
+        add('spark',{top:rnd(z[0],z[1])+'vh',left:rnd(4,94)+'vw'},{},1900); },
+];
+let lastFx=-1;
+(function micro(){
+  let i; do{ i=Math.floor(Math.random()*FX.length) }while(i===lastFx); lastFx=i;
+  if(!off('fx')) FX[i]();
+  setTimeout(micro,rnd(3500,8000));
+})();
+
+/* preview hook: ?demo=moment */
+if(P.get('demo')==='moment') setTimeout(moment,500);
+</script>
+</body>
+</html>
