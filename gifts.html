@@ -18,6 +18,12 @@ canvas{position:absolute;inset:0}
   text-shadow:0 0 6px rgba(255,255,255,.5),0 0 18px rgba(var(--cool),.35);white-space:nowrap;
   clip-path:inset(0 100% 0 0);transition:clip-path 1.8s ease, opacity 1.5s ease}
 .hand.write{clip-path:inset(0 0 0 0)}
+.av{border-radius:50%;overflow:hidden;opacity:0;transform:scale(.6);transition:opacity 1.2s ease,transform 1.6s cubic-bezier(.2,.9,.2,1);
+  box-shadow:0 0 0 2px rgba(255,255,255,.75),0 0 18px rgba(var(--cool),.8),0 0 44px rgba(var(--cool),.45);background:#1a2238}
+.av img{width:100%;height:100%;object-fit:cover;display:block}
+.av .ini{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Lora',serif;font-style:italic;color:#fff;font-size:150%}
+.av.on{opacity:1;transform:scale(1)}
+.av.warm{box-shadow:0 0 0 2px rgba(255,236,214,.85),0 0 18px rgba(var(--warm),.8),0 0 44px rgba(var(--warm),.45)}
 #menu{left:0;right:0;top:calc(var(--gb) + 1.1vh);}
 #menu span{color:#ffe2c2}
 </style>
@@ -62,24 +68,32 @@ function add(dur,draw,delay=0){const s=performance.now()+delay;parts.push({start
 function text(cls,html,css,life){const d=document.createElement('div');d.className='L '+cls;d.innerHTML=html;Object.assign(d.style,css);fx.appendChild(d);
   requestAnimationFrame(()=>requestAnimationFrame(()=>{d.classList.add('on');if(cls.includes('hand'))d.classList.add('write')}));
   setTimeout(()=>{d.classList.remove('on');d.style.opacity=0},life-1500);setTimeout(()=>d.remove(),life);return d}
+function avatar(pic,name,vh,css,life,warm){const d=document.createElement('div');d.className='L av'+(warm?' warm':'');
+  Object.assign(d.style,{width:vh+'vh',height:vh+'vh',fontSize:(vh*.45)+'vh'},css);
+  const ini=`<div class="ini">${esc(name).replace('@','').charAt(0).toUpperCase()||'✦'}</div>`;
+  d.innerHTML=pic?`<img src="${pic}" referrerpolicy="no-referrer" onerror="this.parentNode.innerHTML='${ini.replace(/"/g,'&quot;')}'">`:ini;
+  fx.appendChild(d);requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.add('on')));
+  setTimeout(()=>d.classList.remove('on'),life-1300);setTimeout(()=>d.remove(),life);return d}
 const esc=s=>String(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c])).slice(0,22);
 
 /* ---------- 1. rose: fog on the glass + handwritten name ---------- */
-function rose(name){
+function rose(name,pic){
   const x=W*.72,y=H*(GT+.07);
-  add(5200,q=>{const a=Math.sin(Math.PI*Math.min(q*1.3,1))*.22;glow(x,y,W*.22,'235,240,255',a);
+  add(6000,q=>{const a=Math.sin(Math.PI*Math.min(q*1.3,1))*.22;glow(x,y,W*.22,'235,240,255',a);
     const d=Math.max(0,q-.35)/.65; glow(x+W*.05,y+H*.02+d*H*.12,W*.012,'255,255,255',.5*(1-d)); }); // fog + one drop sliding
   add(900,q=>glow(x,y,W*.35,'255,200,170',.12*Math.sin(Math.PI*q)));                                  // warm breath
-  text('hand',`for ${esc(name)}`,{left:'52%',top:`calc(${(GT+.05)*100}vh)`,width:'40%',textAlign:'center'},5200);
+  avatar(pic,name,5.5,{left:'58%',top:`calc(${(GT+.035)*100}vh)`},6000,true);
+  text('hand',`for ${esc(name)}`,{left:'52%',top:`calc(${(GT+.075)*100}vh)`,width:'40%',textAlign:'center'},6000);
 }
 /* ---------- 2. stars snap: the sky lights up, star by star ---------- */
-function stars(name){
+function stars(name,pic){
   const n=46;for(let i=0;i<n;i++){const x=rnd(.04,.96)*W,y=rnd(.02,GT-.03)*H,r=rnd(1.5,3.2)*devicePixelRatio,d=i*45;
-    add(4200-d,q=>{const a=Math.min(q*6,1)*(1-Math.max(0,q-.7)/.3);glow(x,y,r*5,'200,215,255',.25*a);cx.fillStyle=`rgba(255,255,255,${.9*a})`;cx.fillRect(x-r/2,y-r/2,r,r)},d)}
-  text('small',`${esc(name)} lit the sky`,{left:0,right:0,top:`calc(${GT*50}vh)`},4800);
+    add(6200-d,q=>{const a=Math.min(q*6,1)*(1-Math.max(0,q-.7)/.3);glow(x,y,r*5,'200,215,255',.25*a);cx.fillStyle=`rgba(255,255,255,${.9*a})`;cx.fillRect(x-r/2,y-r/2,r,r)},d)}
+  avatar(pic,name,6.5,{left:'calc(50% - 3.25vh)',top:`calc(${GT*30}vh)`},6500);
+  text('small',`${esc(name)} lit the sky`,{left:0,right:0,top:`calc(${GT*30+7.6}vh)`},6500);
 }
 /* ---------- 3. butterfly: a firefly drifts through the dark, carrying the name ---------- */
-function butterfly(name){
+function butterfly(name,pic){
   const pts=[[-.05,GB+.16],[.35,GB+.09],[.7,GB+.13],[.985,GB-.02],[.985,GT+.05],[.75,GT-.07],[.4,GT-.10],[-.05,GT-.06]];
   const path=q=>{const s=q*(pts.length-1),i=Math.min(Math.floor(s),pts.length-2),f=s-i,e=f*f*(3-2*f);
     return [ (pts[i][0]+(pts[i+1][0]-pts[i][0])*e)*W, (pts[i][1]+(pts[i+1][1]-pts[i][1])*e)*H ]};
@@ -87,25 +101,27 @@ function butterfly(name){
   add(7000,q=>{const [x,y]=path(q);trail.push([x,y,performance.now()]);if(trail.length>90)trail.shift();
     for(const t of trail){const age=(performance.now()-t[2])/1400;if(age<1)glow(t[0],t[1],7*devicePixelRatio,'255,214,160',.16*(1-age))}
     const flap=.6+.4*Math.sin(performance.now()/90);glow(x,y,26*devicePixelRatio,'255,200,140',.35);glow(x,y,8*devicePixelRatio*flap,'255,245,225',.9)});
-  text('name',esc(name),{left:0,right:0,top:`calc(${(GB+.06)*100}vh)`,fontSize:'3vh'},6500);
+  avatar(pic,name,7,{left:'calc(50% - 3.5vh)',top:`calc(${(GB+.045)*100}vh)`},7500,true);
+  text('name',esc(name),{left:0,right:0,top:`calc(${(GB+.045)*100+8}vh)`,fontSize:'2.8vh'},7500);
 }
 /* ---------- 4. galaxy: the sky opens ---------- */
-function galaxy(name){
-  add(9500,q=>{const a=Math.sin(Math.PI*q);cx.fillStyle=`rgba(3,5,14,${.35*a})`;cx.fillRect(0,0,W,GT*H);cx.fillRect(0,GB*H,W,H-GB*H);
+function galaxy(name,pic){
+  add(10500,q=>{const a=Math.sin(Math.PI*q);cx.fillStyle=`rgba(3,5,14,${.35*a})`;cx.fillRect(0,0,W,GT*H);cx.fillRect(0,GB*H,W,H-GB*H);
     for(let i=0;i<14;i++){const u=i/13;glow(W*(-.1+1.2*u),H*(GT*.55+.06*Math.sin(u*5)),W*.16,i%3?'150,170,255':'210,150,255',.10*a)}});
   for(let k=0;k<7;k++){const d=600+k*900,y0=rnd(.0,GT*.6)*H,x0=rnd(.6,1.1)*W;
     add(1600,q=>{const x=x0-q*W*.7,y=y0+q*H*.08;for(let s=0;s<22;s++){const u=s/22;glow(x+u*70*devicePixelRatio,y-u*9*devicePixelRatio,(4-u*3)*devicePixelRatio,'230,240,255',(1-u)*.9*Math.sin(Math.PI*q))}},d)}
   const sp=[];for(let i=0;i<120;i++)sp.push([rnd(0,1)*W,rnd(0,GT)*H,rnd(.5,2)*devicePixelRatio]);
-  add(9500,q=>{const a=Math.sin(Math.PI*q);for(const s of sp){cx.fillStyle=`rgba(255,255,255,${a*.8*(.5+.5*Math.sin(performance.now()/300+s[0]))})`;cx.fillRect(s[0],s[1],s[2],s[2])}});
-  text('name',esc(name),{left:0,right:0,top:`calc(${(GT*100)/2-3.2}vh)`,fontSize:'4.4vh'},9000);
-  text('small','the night is yours',{left:0,right:0,top:`calc(${GB*100+4}vh)`},9000);
+  add(10500,q=>{const a=Math.sin(Math.PI*q);for(const s of sp){cx.fillStyle=`rgba(255,255,255,${a*.8*(.5+.5*Math.sin(performance.now()/300+s[0]))})`;cx.fillRect(s[0],s[1],s[2],s[2])}});
+  avatar(pic,name,10,{left:'calc(50% - 5vh)',top:`calc(${GT*100/2-6.5}vh)`},10500);
+  text('name',esc(name),{left:0,right:0,top:`calc(${GT*100/2+4}vh)`,fontSize:'3.6vh'},10500);
+  text('small','the night is yours',{left:0,right:0,top:`calc(${GB*100+4}vh)`},10500);
 }
 const FX={rose,stars,butterfly,galaxy};
 
 /* ---------- queue so effects never pile up ---------- */
-const Q=[];let busy=false;const LEN={rose:4000,stars:3500,butterfly:5500,galaxy:9000};
-function play(kind,name){Q.push([kind,name]);if(!busy)next()}
-function next(){const it=Q.shift();if(!it){busy=false;return}busy=true;FX[it[0]](it[1]);setTimeout(next,LEN[it[0]])}
+const Q=[];let busy=false;const LEN={rose:5000,stars:5500,butterfly:6500,galaxy:10000};
+function play(kind,name,pic){Q.push([kind,name,pic]);if(!busy)next()}
+function next(){const it=Q.shift();if(!it){busy=false;return}busy=true;FX[it[0]](it[1],it[2]);setTimeout(next,LEN[it[0]])}
 
 /* ---------- gift name -> effect ---------- */
 function kindOf(g){g=(g||'').toLowerCase();
@@ -117,7 +133,7 @@ const WSURL=P.get('ws')||'ws://localhost:21213/';
 function connect(){ if(WSURL==='0')return; let ws;try{ws=new WebSocket(WSURL)}catch(e){return setTimeout(connect,5000)}
   ws.onmessage=m=>{try{const j=JSON.parse(m.data);const ev=j.event||j.type;const d=j.data||j;
     if(ev!=='gift')return; if(d.giftType===1&&!d.repeatEnd)return;      // wait for the end of a streak
-    const k=kindOf(d.giftName);if(k)play(k,d.nickname||d.uniqueId||'someone')}catch(e){}};
+    const k=kindOf(d.giftName);if(k)play(k,d.nickname||d.uniqueId||'someone',d.profilePictureUrl||(d.userDetails&&d.userDetails.profilePictureUrls&&d.userDetails.profilePictureUrls[0])||'')}catch(e){}};
   ws.onclose=()=>setTimeout(connect,4000)}
 connect();
 
