@@ -111,7 +111,12 @@ html,body{margin:0;padding:0;width:100%;height:100%;background:transparent;overf
 .cur{display:inline-block;margin-left:.15em;animation:blink 1s steps(1) infinite}
 @keyframes blink{50%{opacity:0}}
 /* the frame now comes from the background video: no bands, no edge lines, no divider */
-#bandT,#bandB,#edgeT,#edgeB,#fT,#fB,.rule{display:none!important}
+#bandT,#bandB,#edgeT,#edgeB,.rule{display:none!important}
+:root{--gx:0px!important}
+#win,#inner{border-radius:0!important}
+#fT{height:6vh!important;background:linear-gradient(to bottom,rgba(16,25,36,1),rgba(16,25,36,.6) 35%,rgba(16,25,36,0))!important}
+#fB{height:7vh!important;background:linear-gradient(to top,rgba(18,26,38,1),rgba(18,26,38,.6) 35%,rgba(18,26,38,0))!important}
+#inner{box-shadow:inset 0 0 4vh rgba(10,16,28,.55)!important}
 </style>
 </head>
 <body>
